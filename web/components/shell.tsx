@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 import { site } from '@/lib/data';
 import { PAGES, pageForPath } from '@/lib/pages';
 import { useHse } from './state';
+import { Logo } from './logo';
 import { Tour, useAutoTour } from './tour';
 import { cx, Icon } from './ui';
 
@@ -64,7 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       ) : null}
       <Sidebar pathname={pathname} open={s.menuOpen} />
-      <div className="min-w-0 flex-1 pb-10">
+      <div className="relative min-w-0 flex-1 pb-10">
         <TopBar onMenu={() => set({ menuOpen: true })} onGuide={startTour} />
         <main>{children}</main>
         <Tour key={page.id} page={page.id} open={touring} onClose={stopTour} />
@@ -77,9 +78,8 @@ const roundBtn = 'relative grid size-11 flex-none place-items-center rounded-[8p
 
 function Brand() {
   return (
-    <Link href="/" className="inline-flex h-11 items-center gap-2.5 rounded-[8px] pr-4 pl-1.5">
-      <span className="grid size-8 place-items-center rounded-[8px] bg-ink text-lime"><Icon name="eye" className="size-4" /></span>
-      <span className="text-[13px] font-semibold tracking-[0.06em] uppercase">Visual HSE</span>
+    <Link href="/" aria-label="Visual HSE home" className="inline-flex h-11 items-center rounded-[8px] px-1.5">
+      <Logo />
     </Link>
   );
 }
@@ -158,7 +158,7 @@ function CloseBtn() {
 
 function TopBar({ onMenu, onGuide }: { onMenu: () => void; onGuide: () => void }) {
   return (
-    <header className="relative z-20 flex items-center justify-between gap-3 pt-4 pb-3 nav:justify-end">
+    <header className="relative z-20 flex items-center justify-between gap-3 pt-4 pb-3 nav:absolute nav:top-0 nav:right-0 nav:pb-0">
       <div className="flex items-center gap-2 nav:hidden">
         <button type="button" className={roundBtn} aria-label="Open menu" aria-controls="sidebar" onClick={onMenu}>
           <Icon name="menu" />

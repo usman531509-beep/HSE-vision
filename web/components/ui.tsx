@@ -90,7 +90,7 @@ export const eyebrow = 'text-[12.5px] font-medium text-muted';
 
 export function PageHead({ title, desc, tools, aside }: { title: string; desc: string; tools?: ReactNode; aside?: ReactNode }) {
   return (
-    <header data-tour="head" className="mt-8 mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+    <header data-tour="head" className="mt-4 mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-5 nav:mt-5">
       <div className="flex flex-col gap-5">
         <div>
           <h1 className="text-[34px] leading-[1.1] font-normal tracking-[-0.03em] max-compact:text-[28px]">{title}</h1>
@@ -98,7 +98,7 @@ export function PageHead({ title, desc, tools, aside }: { title: string; desc: s
         </div>
         {tools ? <div className="flex flex-wrap items-center gap-2">{tools}</div> : null}
       </div>
-      {aside}
+      {aside ? <div className="nav:pt-16">{aside}</div> : null}
     </header>
   );
 }

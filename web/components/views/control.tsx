@@ -18,12 +18,10 @@ function Pill({ children, tone }: { children: React.ReactNode; tone?: 'act' }) {
 /** A headline number in the page head: huge, light, with a small badge beside it. */
 function BigStat({ value, label, badge, title }: { value: number; label: string; badge: React.ReactNode; title: string }) {
   return (
-    <div title={title}>
-      <div className="flex items-start gap-2">
-        <span className="text-[56px] leading-none font-light tracking-[-0.045em] tabular-nums max-compact:text-[44px]">{value}</span>
-        <span className="mt-2">{badge}</span>
-      </div>
-      <div className="mt-1 text-[13px] text-muted">{label}</div>
+    <div title={title} className="flex min-w-[112px] flex-col">
+      <span className="text-[56px] leading-none font-light tracking-[-0.035em] tabular-nums max-compact:text-[44px]">{value}</span>
+      <span className="mt-2 text-[13px] text-muted">{label}</span>
+      <span className="mt-1 flex h-6 items-center">{badge}</span>
     </div>
   );
 }
@@ -135,7 +133,7 @@ export function ControlView() {
           </>
         }
         aside={
-          <div className="flex flex-wrap gap-x-10 gap-y-4" data-tour="stats">
+          <div className="flex flex-wrap gap-x-10 gap-y-4 max-compact:gap-x-6" data-tour="stats">
             <BigStat value={k.risk} label="Site risk index" badge={<Chip tone={lvl(k.risk)}>{lvlName(k.risk)}</Chip>} title={k.riskNote} />
             <BigStat value={k.alerts} label="Real alerts" badge={<Pill>{k.silenced} quiet</Pill>} title={`${k.silenced} entries stayed quiet: permit and lockout verified`} />
             <BigStat value={k.stops} label="Machine stops" badge={<Pill>&lt; 1 s</Pill>} title="Person truly at risk · stopped in under 1 s" />
