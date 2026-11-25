@@ -21,7 +21,7 @@ export const TOURS: Record<string, TourStep[]> = {
     { target: 'audit', title: 'Audit readiness', body: 'How much evidence each standard already has. Open Compliance for the gaps.' },
     { target: 'shell-ask', title: 'Ask the data', body: 'Ask a question in plain words, for example “Why did Press 3 stop?”. Answers come with their sources.' },
     { target: 'shell-bell', title: 'Notifications', body: 'High-severity events that need you. The red dot means something is unread.' },
-    { target: 'shell-guide', title: 'Replay this guide', body: 'Open the guide again on any page to tour that page’s modules.' },
+    { target: 'shell-guide', title: 'Replay this guide', body: 'Open the guide again on any page to tour that page’s modules. For step-by-step help, open User guide in the sidebar.' },
   ],
   live: [
     HEAD('Live floor', 'What every camera and sensor sees right now, zone by zone.'),
@@ -86,5 +86,10 @@ export const TOURS: Record<string, TourStep[]> = {
     { target: 'briefing', title: 'Morning briefing', body: 'Sent at 06:30. Every line links to its source.' },
     { target: 'library', title: 'Report library', body: 'Download any report as PDF or Excel.' },
     { target: 'routines', title: 'Routines', body: 'Reports that run on a schedule or trigger. Switch each one on or off.' },
+  ],
+  guide: [
+    HEAD('User guide', 'Step-by-step help for every module. Search for a task or pick a module from the contents.'),
+    { target: 'guide-index', title: 'Contents', body: 'Jump to any module’s guide. Greyed entries do not match your search.' },
+    { target: 'guide-article', title: 'Guides', body: 'Each guide lists common tasks as numbered steps. Tour this page opens the module and walks you through it.' },
   ],
 };

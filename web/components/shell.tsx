@@ -20,6 +20,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   const stopTour = useCallback(() => setTouring(false), []);
   useAutoTour(page.id, startTour);
 
+  // Links such as /permits?tour=1 (from the user guide) open the page's tour.
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    if (u.searchParams.get('tour') !== '1') return;
+    u.searchParams.delete('tour');
+    window.history.replaceState(null, '', u.pathname + u.search + u.hash);
+    const t = setTimeout(startTour, 500);
+    return () => clearTimeout(t);
+  }, [pathname, startTour]);
+
   // Old links used hashes (#live, #permits…). Send them to the matching route.
   useEffect(() => {
     const id = window.location.hash.slice(1);

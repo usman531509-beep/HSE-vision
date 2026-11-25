@@ -28,7 +28,7 @@ export function SpatialView() {
       try {
         s = createSim(host.current, feedHost.current, overlay.current, {
           onTick: (t) => setTick(t),
-          onEvent: (e) => setEvents((p) => [e, ...p].slice(0, 40)),
+          onEvent: (e) => { if (alive) setEvents((p) => [e, ...p.filter((x) => x.key !== e.key)].slice(0, 40)); },
           onPickCam: (id) => setCam(id),
         });
         sim.current = s;
@@ -36,7 +36,7 @@ export function SpatialView() {
         setFailed(true);
       }
     });
-    return () => { alive = false; s?.dispose(); sim.current = null; };
+    return () => { alive = false; s?.dispose(); sim.current = null; setEvents([]); };
   }, []);
 
   useEffect(() => { sim.current?.select(cam); }, [cam, tick === null]);

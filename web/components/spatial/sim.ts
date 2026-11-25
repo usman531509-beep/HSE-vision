@@ -12,7 +12,7 @@ import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer
 
 export type Level = 'High' | 'Medium' | 'Low';
 export interface Detection { id: string; label: string; sev: Level; conf: number }
-export interface SimEvent { key: number; time: string; sev: Level; where: string; what: string; cams: string[] }
+export interface SimEvent { key: string; time: string; sev: Level; where: string; what: string; cams: string[] }
 export interface CamInfo { id: string; name: string; offline?: boolean }
 export interface SimTick {
   time: string;
@@ -237,6 +237,7 @@ export function createSim(
   cb: { onTick: (t: SimTick) => void; onEvent: (e: SimEvent) => void; onPickCam: (id: string) => void },
 ) {
   const disposers: (() => void)[] = [];
+  const runId = Math.random().toString(36).slice(2, 8);
 
   /* renderers */
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -572,7 +573,7 @@ export function createSim(
     const last = lastFired.get(key);
     if (last !== undefined && simT - last < every) return false;
     lastFired.set(key, simT);
-    cb.onEvent({ key: ++eventKey, time: fmt(simT), sev, where: zoneAt(at.x, at.z), what, cams: seenBy(at.clone().setY(1.2)) });
+    cb.onEvent({ key: `${runId}-${++eventKey}`, time: fmt(simT), sev, where: zoneAt(at.x, at.z), what, cams: seenBy(at.clone().setY(1.2)) });
     return true;
   }
 

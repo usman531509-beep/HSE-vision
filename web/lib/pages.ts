@@ -1,5 +1,5 @@
 import {
-  Box, Cctv, ChartColumn, ClipboardCheck, FileLock2, GraduationCap, LayoutDashboard, ListTodo, ShieldCheck, TriangleAlert, type LucideIcon,
+  BookOpen, Box, Cctv, ChartColumn, ClipboardCheck, FileLock2, GraduationCap, LayoutDashboard, ListTodo, ShieldCheck, TriangleAlert, type LucideIcon,
 } from 'lucide-react';
 import type { Tone } from './data';
 
@@ -16,6 +16,7 @@ export const PAGES: PageDef[] = [
   { id: 'compliance', href: '/compliance', nav: 'Compliance', title: 'Compliance', icon: ShieldCheck },
   { id: 'training', href: '/training', nav: 'Training', title: 'Training', icon: GraduationCap },
   { id: 'reports', href: '/reports', nav: 'Reports', title: 'Reports', icon: ChartColumn },
+  { id: 'guide', href: '/guide', nav: 'User guide', title: 'User guide', icon: BookOpen },
 ];
 
 export function pageForPath(pathname: string): PageDef {
