@@ -4,6 +4,7 @@
    it survives navigation between screens and resets on reload. */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { actionOverdue, actions, type Range, type Sev } from '@/lib/data';
+import type { DayIndex } from '@/lib/heat/data';
 
 export interface HseState {
   range: Range;
@@ -22,6 +23,11 @@ export interface HseState {
   routinesOff: Record<number, boolean>;
   askNote: boolean;
   menuOpen: boolean;
+  heatDay: DayIndex;
+  /** Selected heat-map cell, as cellKey() builds it. */
+  heatCell: string;
+  heatDecisions: Record<string, 'yes' | 'no'>;
+  heatAsk: number;
 }
 
 const initial: HseState = {
@@ -36,6 +42,10 @@ const initial: HseState = {
   routinesOff: { 3: true },
   askNote: false,
   menuOpen: false,
+  heatDay: 1,
+  heatCell: '1|Compressor|A',
+  heatDecisions: {},
+  heatAsk: 0,
 };
 
 type Update = Partial<HseState> | ((s: HseState) => Partial<HseState>);

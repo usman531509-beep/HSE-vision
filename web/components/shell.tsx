@@ -89,7 +89,8 @@ function Sidebar({ pathname, open }: { pathname: string; open: boolean }) {
     <aside
       id="sidebar"
       className={cx(
-        'relative z-40 my-4 flex h-[calc(100vh-2rem)] w-[244px] flex-none flex-col gap-2 rounded-lg bg-paper p-3 shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line',
+        // Sticky on desktop: the sidebar is one viewport tall, so it stays pinned while the page scrolls.
+        'sticky top-4 z-40 my-4 flex h-[calc(100vh-2rem)] w-[244px] flex-none flex-col gap-2 self-start rounded-lg bg-paper p-3 shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line',
         'max-nav:fixed max-nav:top-3 max-nav:bottom-3 max-nav:left-3 max-nav:my-0 max-nav:h-auto max-nav:bg-paper max-nav:shadow-[0_20px_50px_-20px_rgb(0_0_0/0.3)] max-nav:transition-transform max-nav:duration-200 max-nav:ease-out',
         open ? 'max-nav:translate-x-0' : 'max-nav:-translate-x-[calc(100%+1rem)]',
       )}

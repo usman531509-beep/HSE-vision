@@ -73,6 +73,32 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
+    id: 'heat', title: 'Heat risk', href: '/heat',
+    summary: 'HeatShield joins live WBGT sensors, the 48-hour weather forecast and the site incident history into one risk score per area and shift, then suggests changes to planned work before the heat peaks.',
+    tasks: [
+      { title: 'Plan tomorrow around the heat', steps: [
+        'Select Tomorrow at the top of the page.',
+        'Read the Heat briefing. Each job at risk has a suggested change and the reason.',
+        'Approve or decline each suggestion. Approved moves update the permit schedule.',
+      ] },
+      { title: 'Understand a score', steps: [
+        'Select a cell in the Heat-risk map.',
+        'The panel beside it shows the heat, planned-work and past-incident parts and how much each adds.',
+        'During the current shift a live sensor reading replaces the forecast when it is hotter.',
+      ] },
+      { title: 'Watch the engine react to a sensor', steps: [
+        'Scroll to WBGT sensors.',
+        'Select Simulate a hot spot under one sensor.',
+        'Within a few seconds the reading rises, the alarm appears and the map re-scores today.',
+      ] },
+    ],
+    tips: [
+      'WBGT (wet-bulb globe temperature) is the standard measure of heat stress. It includes humidity, sun and air movement.',
+      'Work-rest bands follow ACGIH limits for moderate work by acclimatised workers.',
+      'The sensor feed in this preview comes from a simulated gateway that follows the forecast.',
+    ],
+  },
+  {
     id: 'incidents', title: 'Incidents & near-misses', href: '/incidents',
     summary: 'Every incident from first report to a filed investigation.',
     tasks: [

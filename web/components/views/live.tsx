@@ -2,12 +2,11 @@
 
 import Image from 'next/image';
 import { cams, floorStats, machines, machineState, plan, sensors, type Sev } from '@/lib/data';
+import { Spark, TINT } from '../figures';
 import { useHse } from '../state';
 import { Card, Chip, cx, Dot, eyebrow, Foot, Icon, Legend, meta, Num, PageHead, Panel, SEV, Sq, Table, tile } from '../ui';
 
 const BOX: Partial<Record<Sev, string>> = { High: '#ff6a5a', Medium: '#f6b43e', Low: '#35c877' };
-const PLAN_TONE = { act: 'bg-act-bg', watch: 'bg-watch-bg', low: 'bg-lime/60', off: 'bg-sunk', info: 'bg-sunk' };
-const SPARK_LAST = { act: 'bg-act', watch: 'bg-watch', low: 'bg-low', off: 'bg-off', info: 'bg-off' };
 
 export function LiveView() {
   const { s, set } = useHse();
@@ -73,7 +72,7 @@ export function LiveView() {
               {plan.map(([name, col, r, cs, rs, sev, people]) => {
                 const t = SEV[sev];
                 return (
-                  <div key={name} className={cx('flex flex-col justify-between rounded-md px-3 py-2.5 text-[12.5px]', PLAN_TONE[t])}
+                  <div key={name} className={cx('flex flex-col justify-between rounded-md px-3 py-2.5 text-[12.5px]', TINT[t])}
                     style={{ gridColumn: `${col} / span ${cs}`, gridRow: `${r} / span ${rs}` }}>
                     <b className="text-[13px] font-medium">{name}</b>
                     <span className="flex flex-wrap justify-between gap-x-2 text-ink-2">
@@ -95,17 +94,12 @@ export function LiveView() {
         <Card tour="sensors" title="Sensors" sub="Last 12 readings">
           <div className="grid grid-cols-3 gap-4 max-nav:grid-cols-1">
             {sensors.map((sn) => {
-              const max = Math.max(...sn.v), min = Math.min(...sn.v), t = SEV[sn.sev];
+              const t = SEV[sn.sev];
               return (
                 <div key={sn.label} className={tile}>
                   <div className="flex justify-between gap-3 text-[13px]"><span className="text-ink-2">{sn.label}</span><Chip tone={t}>{sn.state}</Chip></div>
                   <Num value={sn.value} unit={sn.unit} className="mt-1 text-2xl" />
-                  <div className="mt-2.5 grid h-9 grid-cols-12 items-end gap-[3px]" aria-hidden="true">
-                    {sn.v.map((v, i) => {
-                      const h = max === min ? 70 : 25 + ((v - min) / (max - min)) * 75;
-                      return <span key={i} className={cx('rounded-[2px]', i === sn.v.length - 1 ? SPARK_LAST[t] : 'bg-line-2')} style={{ height: `${h.toFixed(0)}%` }} />;
-                    })}
-                  </div>
+                  <Spark values={sn.v} tone={t} className="mt-2.5" />
                   <div className={cx(meta, 'mt-2')}>{sn.where}</div>
                 </div>
               );

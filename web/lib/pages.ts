@@ -1,5 +1,5 @@
 import {
-  BookOpen, Box, Cctv, ChartColumn, ClipboardCheck, FileLock2, GraduationCap, LayoutDashboard, ListTodo, ShieldCheck, TriangleAlert, type LucideIcon,
+  BookOpen, Box, Cctv, ChartColumn, ClipboardCheck, FileLock2, GraduationCap, LayoutDashboard, ListTodo, ShieldCheck, Thermometer, TriangleAlert, type LucideIcon,
 } from 'lucide-react';
 import type { Tone } from './data';
 
@@ -9,6 +9,7 @@ export const PAGES: PageDef[] = [
   { id: 'control', href: '/', nav: 'Overview', title: 'Control room', icon: LayoutDashboard },
   { id: 'live', href: '/live', nav: 'Live floor', title: 'Live floor', icon: Cctv },
   { id: 'spatial', href: '/spatial', nav: 'Spatial view', title: 'Spatial view', icon: Box },
+  { id: 'heat', href: '/heat', nav: 'Heat risk', title: 'Heat risk', icon: Thermometer },
   { id: 'incidents', href: '/incidents', nav: 'Incidents', title: 'Incidents', icon: TriangleAlert, count: ['2', 'act'] },
   { id: 'permits', href: '/permits', nav: 'Permits & lockout', title: 'Permits & lockout', icon: FileLock2 },
   { id: 'inspections', href: '/inspections', nav: 'Inspections', title: 'Inspections', icon: ClipboardCheck },
