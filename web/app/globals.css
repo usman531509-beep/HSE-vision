@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+/* Visual HSE — precision-instrument skin (flat, opaque, hairlines). See ../DESIGN.md.
+   Tokens live in the Tailwind theme, so every colour is a utility: bg-paper, text-act-ink, border-line… */
+@theme {
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* ink and paper carry a temperature; hierarchy is ink at opacity */
+  --color-ink: #141414;
+  --color-ink-2: rgb(20 20 20 / 0.78);
+  --color-muted: rgb(20 20 20 / 0.55);
+  --color-soft: rgb(20 20 20 / 0.38);
+
+  --color-shell: #eef0ef; /* app background (under the gradient) */
+  --color-paper: #ffffff; /* cards */
+  --color-sunk: #f3f4f3; /* wells, hover, selected rows */
+  --color-line: #ececec; /* hairline */
+  --color-line-2: #dcdcdc; /* stronger hairline, inputs */
+  --color-track: #e8eae9; /* empty cells */
+
+  --color-accent: #141414; /* primary actions, current nav pill */
+  --color-accent-2: #333333;
+  --color-accent-bg: #d6e4db; /* sage: selected cards */
+  --color-sage: #d6e4db;
+  --color-lime: #e4f47a;
+  --color-lime-ink: #3f4a00;
+  --color-teal: #6fb9a5;
+
+  /* semantic set, status only */
+  --color-act: #c8343d;
+  --color-act-bg: #f8e3e1;
+  --color-act-ink: #a3242c;
+  --color-watch: #c98412;
+  --color-watch-bg: #f6ebd3;
+  --color-watch-ink: #7f5207;
+  --color-low: #2f8656;
+  --color-low-bg: #e4f47a;
+  --color-low-ink: #2f4a12;
+  --color-off: #8a8f8b;
+  --color-off-bg: #eceae4;
+  --color-off-ink: #4f5551;
+
+  --color-cam: #262b29;
+  --color-cam-floor: #2d3330;
+  --color-cam-ink: #f1f0ea;
+
+  --radius-lg: 22px; /* card */
+  --radius-md: 14px; /* tile, control */
+  --radius-sm: 10px; /* small */
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* layout breakpoints from DESIGN.md (used as max-nav: / max-compact:) */
+  --breakpoint-compact: 45rem; /* 720px: single column */
+  --breakpoint-nav: 68.75rem; /* 1100px: sidebar becomes a drawer */
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    /* soft pastel wash, fixed behind the cards */
+    background:
+      radial-gradient(60% 50% at 85% 8%, rgb(186 208 236 / 0.75), transparent 70%),
+      radial-gradient(45% 40% at 100% 95%, rgb(250 214 170 / 0.7), transparent 70%),
+      radial-gradient(50% 45% at 10% 100%, rgb(236 222 246 / 0.7), transparent 70%),
+      radial-gradient(40% 35% at 45% 35%, rgb(255 236 214 / 0.55), transparent 70%),
+      var(--color-shell);
+    background-attachment: fixed;
+    font-size: 14px;
+    line-height: 1.45;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: default;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
