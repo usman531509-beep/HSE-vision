@@ -26,7 +26,7 @@ export function PermitsView() {
           ]}
         />
 
-        <Card title="Waiting for approval" sub="The agent checks training and the roster first.">
+        <Card tour="approvals" title="Waiting for approval" sub="The agent checks training and the roster first.">
           <div className={list}>
             {permitRequests.map((r) => {
               const d = s.permitDecisions[r.id];
@@ -54,7 +54,7 @@ export function PermitsView() {
           </div>
         </Card>
 
-        <div className="px-1 pt-2"><h2 className="text-[22px] font-normal tracking-[-0.02em]">Active permits</h2></div>
+        <div data-tour="active" className="px-1 pt-2"><h2 className="text-[22px] font-normal tracking-[-0.02em]">Active permits</h2></div>
         <div className="grid grid-cols-3 gap-4 max-nav:grid-cols-1">
           {permits.map((p) => (
             <section key={p.id} className={cx(card, 'gap-3')}>
@@ -77,7 +77,7 @@ export function PermitsView() {
           ))}
         </div>
 
-        <Card title="Lockout board">
+        <Card tour="lockout" title="Lockout board">
           <Table head={['Machine', 'Energy sources', 'Locked by', 'Since', 'Checked by', 'State']}>
             {locks.map((l) => {
               const t = SEV[lockState[l[5]]];

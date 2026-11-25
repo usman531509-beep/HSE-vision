@@ -12,7 +12,7 @@ const MODULE_ICON: Record<string, IconName> = { 'Vision-AI': 'camera', 'Chemical
 const STAGE = ['Open', 'In progress', 'Awaiting check'];
 
 function Pill({ children, tone }: { children: React.ReactNode; tone?: 'act' }) {
-  return <span className={cx('inline-flex h-5 items-center rounded-full px-2 text-[10.5px] font-semibold whitespace-nowrap', tone === 'act' ? 'bg-act-bg text-act-ink' : 'bg-lime text-lime-ink')}>{children}</span>;
+  return <span className={cx('inline-flex h-5 items-center gap-1.5 text-[11.5px] font-medium whitespace-nowrap before:size-2 before:rounded-[2px]', tone === 'act' ? 'text-act-ink before:bg-act' : 'text-low before:bg-low')}>{children}</span>;
 }
 
 /** A headline number in the page head: huge, light, with a small badge beside it. */
@@ -34,7 +34,7 @@ function ZoneStrip() {
   const { s, set } = useHse();
   const ranked = [...zones].sort((a, b) => b.score - a.score).slice(0, 5);
   return (
-    <section aria-label="Highest-risk zones, ranked" className="mb-4 grid grid-cols-5 gap-4 max-nav:grid-cols-3 max-compact:grid-cols-1">
+    <section data-tour="zones" aria-label="Highest-risk zones, ranked" className="mb-4 grid grid-cols-5 gap-4 max-nav:grid-cols-3 max-compact:grid-cols-1">
       {ranked.map((z, i) => {
         const l = lvl(z.score);
         return (
@@ -44,11 +44,11 @@ function ZoneStrip() {
             aria-pressed={s.zone === z.name}
             onClick={() => set({ zone: z.name })}
             className={cx(
-              card, 'gap-2 text-left transition-colors duration-150 ease-out hover:bg-paper aria-pressed:bg-sage/95',
+              card, 'gap-2 text-left transition-colors duration-150 ease-out hover:bg-paper aria-pressed:bg-sage',
             )}
           >
             <span className="flex items-center gap-2 text-[13px]">
-              <span className="grid size-6 flex-none place-items-center rounded-full bg-ink text-[11px] font-semibold text-paper tabular-nums">{i + 1}</span>
+              <span className="grid size-6 flex-none place-items-center rounded-[5px] bg-ink text-[11px] font-semibold text-paper tabular-nums">{i + 1}</span>
               <span className="min-w-0 truncate font-medium">{z.name}</span>
             </span>
             <span className="mt-2 flex items-end justify-between gap-2">
@@ -97,7 +97,7 @@ function ShiftChart() {
               {Array.from({ length: 10 }, (_, k) => {
                 const r = 9 - k, level = (r + 1) * 10;
                 const on = r < filled;
-                return <span key={r} className={cx('mx-auto aspect-square h-full rounded-full', !on ? 'bg-track' : level > 70 ? 'bg-act' : level > 40 ? 'bg-watch' : 'bg-teal')} />;
+                return <span key={r} className={cx('mx-auto aspect-square h-full rounded-[2px]', !on ? 'bg-track' : level > 70 ? 'bg-act' : level > 40 ? 'bg-watch' : 'bg-teal')} />;
               })}
             </div>
           );
@@ -126,16 +126,16 @@ export function ControlView() {
         desc="Every zone, checked against permits, lockout and the shift roster before an alert is raised."
         tools={
           <>
-            <div className={segWrap} role="group" aria-label="Time range">
+            <div className={segWrap} role="group" aria-label="Time range" data-tour="range">
               {ranges.map(([id, label]) => (
                 <button key={id} type="button" className={segBtn} aria-pressed={s.range === id} onClick={() => set({ range: id })}>{label}</button>
               ))}
             </div>
-            <Link className={btn('dark')} href="/incidents"><Icon name="alert" />Report incident</Link>
+            <Link className={btn('dark')} href="/incidents" data-tour="report"><Icon name="alert" />Report incident</Link>
           </>
         }
         aside={
-          <div className="flex flex-wrap gap-x-10 gap-y-4">
+          <div className="flex flex-wrap gap-x-10 gap-y-4" data-tour="stats">
             <BigStat value={k.risk} label="Site risk index" badge={<Chip tone={lvl(k.risk)}>{lvlName(k.risk)}</Chip>} title={k.riskNote} />
             <BigStat value={k.alerts} label="Real alerts" badge={<Pill>{k.silenced} quiet</Pill>} title={`${k.silenced} entries stayed quiet: permit and lockout verified`} />
             <BigStat value={k.stops} label="Machine stops" badge={<Pill>&lt; 1 s</Pill>} title="Person truly at risk · stopped in under 1 s" />
@@ -148,6 +148,7 @@ export function ControlView() {
 
         <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,.82fr)_minmax(0,1.05fr)] grid-rows-[auto_1fr] gap-4 max-xl:grid-cols-2 max-compact:grid-cols-1">
           <Card
+            tour="zone-risk"
             id="zone-risk"
             className="row-span-2 max-xl:col-span-full max-xl:row-auto"
             title="Zone risk"
@@ -187,7 +188,7 @@ export function ControlView() {
             </div>
           </Card>
 
-          <Card title="Site risk" sub={k.riskNote}>
+          <Card tour="site-risk" title="Site risk" sub={k.riskNote}>
             <Gauge risk={k.risk} />
             <div className="flex justify-between gap-2 border-t border-line pt-3 text-[12.5px]">
               <div><span className={meta}>Peak this shift</span><b className="block text-[15px] font-semibold text-act-ink tabular-nums">72 · 18:00</b></div>
@@ -195,17 +196,18 @@ export function ControlView() {
             </div>
           </Card>
 
-          <Card title="Risk through the shift" sub="Predicted, hourly. Peak at 18:00 during changeover.">
+          <Card tour="shift" title="Risk through the shift" sub="Predicted, hourly. Peak at 18:00 during changeover.">
             <ShiftChart />
             <Legend>
               <span><Sq tone="act" />Above 70</span>
               <span><Sq tone="watch" />40–70</span>
-              <span><i className="inline-block size-2.5 rounded-full bg-teal" />Below 40</span>
+              <span><i className="inline-block size-2.5 rounded-[2px] bg-teal" />Below 40</span>
               <span><span className="w-4 border-t-[1.5px] border-dashed border-act" />Act threshold</span>
             </Legend>
           </Card>
 
           <Card
+            tour="events"
             className="col-span-2 max-xl:col-span-full max-compact:col-auto"
             title={<><Dot tone="low" />Live events</>}
             sub={`${events.filter((e) => e[1] === 'High').length} high-severity this shift`}
@@ -226,7 +228,7 @@ export function ControlView() {
           </Card>
         </div>
 
-        <Card title="See · Decide · Act" sub="Recent agent decisions, with the facts it checked first.">
+        <Card tour="decisions" title="See · Decide · Act" sub="Recent agent decisions, with the facts it checked first.">
           <div className="grid grid-cols-3 gap-4 max-nav:grid-cols-1">
             {decisions.map((d) => (
               <div key={d.time} className="flex flex-col gap-2.5 rounded-md bg-sunk px-4 py-4">
@@ -243,7 +245,7 @@ export function ControlView() {
         </Card>
 
         <div className="grid grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] gap-4 max-nav:grid-cols-1">
-          <Card title="Follow-up actions" sub="Each has an owner and a due date." extra={<Link className={link} href="/actions">View all actions</Link>}>
+          <Card tour="actions" title="Follow-up actions" sub="Each has an owner and a due date." extra={<Link className={link} href="/actions">View all actions</Link>}>
             <div className={list}>
               {acts.map((a) => (
                 <div key={a.id} className={row}>
@@ -258,7 +260,7 @@ export function ControlView() {
             </div>
           </Card>
           <div className="grid gap-4">
-            <Card title="Waste & energy today">
+            <Card tour="waste" title="Waste & energy today">
               <div className="grid grid-cols-2 gap-4 max-compact:grid-cols-1">
                 {waste.map((w) => (
                   <div key={w[0]} className={tile}>
@@ -269,7 +271,7 @@ export function ControlView() {
                 ))}
               </div>
             </Card>
-            <Card title="Audit readiness" extra={<Link className={link} href="/compliance">Compliance</Link>}>
+            <Card tour="audit" title="Audit readiness" extra={<Link className={link} href="/compliance">Compliance</Link>}>
               {audit.map((a) => (
                 <div key={a[0]}>
                   <div className="flex justify-between gap-3 pb-2 text-[13px]"><b className="font-medium">{a[0]}</b><span className="text-muted">{a[1]}% on file</span></div>

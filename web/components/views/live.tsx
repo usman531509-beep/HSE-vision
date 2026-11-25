@@ -26,7 +26,7 @@ export function LiveView() {
       />
       <Panel>
         <div className="grid grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] gap-4 max-nav:grid-cols-1">
-          <Card title={<>{c.name} <Chip tone={SEV[c.sev]}>{c.status}</Chip></>} sub={`${c.id} · ${c.zone}`}>
+          <Card tour="camera" title={<>{c.name} <Chip tone={SEV[c.sev]}>{c.status}</Chip></>} sub={`${c.id} · ${c.zone}`}>
             <div className="relative aspect-video overflow-hidden rounded-[18px] bg-cam text-cam-ink" role="img" aria-label={`Camera view of ${c.name}: ${c.summary}`}>
               {c.img ? (
                 <Image key={c.id} src={c.img} alt="" fill priority sizes="(max-width: 1100px) 100vw, 60vw" className="object-cover brightness-[.82] saturate-[.85]" />
@@ -46,7 +46,7 @@ export function LiveView() {
                   ))}
                   <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-black/45 px-3.5 py-2 text-xs font-medium tabular-nums">
                     <span>{c.id} · {c.name}</span>
-                    <span className="inline-flex items-center gap-1.5 before:size-1.5 before:rounded-full before:bg-act">REC</span>
+                    <span className="inline-flex items-center gap-1.5 before:size-1.5 before:rounded-[2px] before:bg-act">REC</span>
                   </div>
                 </>
               )}
@@ -59,7 +59,7 @@ export function LiveView() {
                   type="button"
                   aria-pressed={x.id === c.id}
                   onClick={() => set({ cam: x.id })}
-                  className="flex flex-col items-start gap-0.5 rounded-md bg-sunk px-3 py-2.5 text-left hover:bg-sage/60 aria-pressed:bg-sage"
+                  className="flex flex-col items-start gap-0.5 rounded-md bg-sunk px-3 py-2.5 text-left hover:bg-sage aria-pressed:bg-sage"
                 >
                   <b className="flex items-center gap-[7px] text-[12.5px] font-semibold"><Dot tone={SEV[x.sev]} />{x.id}</b>
                   <span className="text-xs text-muted">{x.name}</span>
@@ -68,7 +68,7 @@ export function LiveView() {
             </div>
           </Card>
 
-          <Card title="Floor plan" sub="Zone level and people on the floor now">
+          <Card tour="plan" title="Floor plan" sub="Zone level and people on the floor now">
             <div className="grid grid-cols-4 grid-rows-[repeat(3,88px)] gap-1.5 max-compact:grid-rows-[repeat(3,76px)]">
               {plan.map(([name, col, r, cs, rs, sev, people]) => {
                 const t = SEV[sev];
@@ -92,7 +92,7 @@ export function LiveView() {
           </Card>
         </div>
 
-        <Card title="Sensors" sub="Last 12 readings">
+        <Card tour="sensors" title="Sensors" sub="Last 12 readings">
           <div className="grid grid-cols-3 gap-4 max-nav:grid-cols-1">
             {sensors.map((sn) => {
               const max = Math.max(...sn.v), min = Math.min(...sn.v), t = SEV[sn.sev];
@@ -103,7 +103,7 @@ export function LiveView() {
                   <div className="mt-2.5 grid h-9 grid-cols-12 items-end gap-[3px]" aria-hidden="true">
                     {sn.v.map((v, i) => {
                       const h = max === min ? 70 : 25 + ((v - min) / (max - min)) * 75;
-                      return <span key={i} className={cx('rounded-full', i === sn.v.length - 1 ? SPARK_LAST[t] : 'bg-line-2')} style={{ height: `${h.toFixed(0)}%` }} />;
+                      return <span key={i} className={cx('rounded-[2px]', i === sn.v.length - 1 ? SPARK_LAST[t] : 'bg-line-2')} style={{ height: `${h.toFixed(0)}%` }} />;
                     })}
                   </div>
                   <div className={cx(meta, 'mt-2')}>{sn.where}</div>
@@ -113,7 +113,7 @@ export function LiveView() {
           </div>
         </Card>
 
-        <Card title="Machines">
+        <Card tour="machines" title="Machines">
           <Table head={['Machine', 'Zone', 'Status', 'Power', 'Temp', 'Guard / lockout']}>
             {machines.map((m) => {
               const t = SEV[machineState[m[2]]];

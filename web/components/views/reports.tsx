@@ -9,7 +9,7 @@ function Bar({ v, on }: { v: number; on: string }) {
     <div className="grid h-full w-3.5 grid-rows-8 gap-0.5 max-compact:w-[9px]">
       {Array.from({ length: 8 }, (_, k) => {
         const r = 7 - k;
-        return <span key={r} className={cx('rounded-full', r < v ? on : 'bg-track')} />;
+        return <span key={r} className={cx('rounded-[2px]', r < v ? on : 'bg-track')} />;
       })}
     </div>
   );
@@ -28,9 +28,10 @@ export function ReportsView() {
       <Panel>
         <div className="grid grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] gap-4 max-nav:grid-cols-1">
           <Card
+            tour="trend"
             title="Incidents and near-misses, by week"
             sub="More near-misses reported, fewer incidents: problems are caught earlier."
-            extra={<Legend><span><Sq tone="act" />Incidents</span><span><i className="inline-block size-2.5 rounded-full bg-teal" />Near-misses</span></Legend>}
+            extra={<Legend><span><Sq tone="act" />Incidents</span><span><i className="inline-block size-2.5 rounded-[2px] bg-teal" />Near-misses</span></Legend>}
           >
             <div
               className="mt-2 grid grid-cols-[28px_repeat(8,1fr)] items-start gap-1.5 max-compact:gap-[3px]"
@@ -48,10 +49,10 @@ export function ReportsView() {
               ))}
             </div>
           </Card>
-          <Card title="Wednesday, 25 November" sub="Morning briefing · sent 06:30" note>
+          <Card tour="briefing" title="Wednesday, 25 November" sub="Morning briefing · sent 06:30" note>
             <ul>
               {briefing.map((b) => (
-                <li key={b} className="flex gap-2.5 border-b border-line py-[9px] text-[13.5px] last:border-b-0 before:mt-2 before:size-[5px] before:flex-none before:rounded-full before:bg-ink">{b}</li>
+                <li key={b} className="flex gap-2.5 border-b border-line py-[9px] text-[13.5px] last:border-b-0 before:mt-2 before:size-[5px] before:flex-none before:rounded-[2px] before:bg-ink">{b}</li>
               ))}
             </ul>
             <p className={meta}>Sent to 6 people in English and Urdu. Every line links to its source.</p>
@@ -59,7 +60,7 @@ export function ReportsView() {
         </div>
 
         <div className="grid grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] gap-4 max-nav:grid-cols-1">
-          <Card title="Report library">
+          <Card tour="library" title="Report library">
             <div className={list}>
               {reports.map((r) => (
                 <div key={r[0]} className={row}>
@@ -74,7 +75,7 @@ export function ReportsView() {
               ))}
             </div>
           </Card>
-          <Card title="Routines" sub="Run on a schedule or a trigger, without anyone asking.">
+          <Card tour="routines" title="Routines" sub="Run on a schedule or a trigger, without anyone asking.">
             <div className={list}>
               {routines.map((r, i) => {
                 const on = !s.routinesOff[i];
@@ -87,7 +88,7 @@ export function ReportsView() {
                       aria-checked={on}
                       aria-label={r[0]}
                       onClick={() => set((p) => ({ routinesOff: { ...p.routinesOff, [i]: !p.routinesOff[i] } }))}
-                      className="relative h-6 w-11 flex-none rounded-full bg-line-2 transition-colors duration-200 ease-out after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-full after:bg-paper after:transition-[left] after:duration-200 after:ease-out aria-checked:bg-ink aria-checked:after:left-[22px] aria-checked:after:bg-lime"
+                      className="relative h-6 w-11 flex-none rounded-[5px] bg-line-2 transition-colors duration-200 ease-out after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-[4px] after:bg-paper after:transition-[left] after:duration-200 after:ease-out aria-checked:bg-ink aria-checked:after:left-[22px] aria-checked:after:bg-lime"
                     />
                   </div>
                 );

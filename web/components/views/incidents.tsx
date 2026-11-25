@@ -23,7 +23,7 @@ export function IncidentsView() {
       <Panel>
         <Kpis items={incidentKpis} />
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)] gap-4 max-nav:grid-cols-1">
-          <Card title="This month">
+          <Card tour="list" title="This month">
             <Filters label="Filter by type" options={[['All', 'All'], ['Incident', 'Incidents'], ['Near-miss', 'Near-misses']]} value={s.incFilter} onChange={(v) => set({ incFilter: v })} />
             <div className={list}>
               {shown.map((i) => (
@@ -35,7 +35,7 @@ export function IncidentsView() {
             </div>
           </Card>
 
-          <Card title={c.title} sub={`${c.id} · ${c.type} · ${c.zone} · ${c.date} ${c.time}`} extra={<Chip tone={SEV[c.sev]}>{c.sev} severity</Chip>}>
+          <Card tour="detail" title={c.title} sub={`${c.id} · ${c.type} · ${c.zone} · ${c.date} ${c.time}`} extra={<Chip tone={SEV[c.sev]}>{c.sev} severity</Chip>}>
             <ol className="grid grid-cols-4 gap-2" aria-label="Progress">
               {incidentStages.map((st, n) => {
                 const done = n + 1 < stage || approved, now = n + 1 === stage && !approved;

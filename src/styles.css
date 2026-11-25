@@ -348,11 +348,11 @@ button.row:hover, .row.clickable:hover { background: var(--sunk); }
 .cam-list button[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent); }
 
 .plan { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 88px); gap: 6px; }
-.plan-zone { border-radius: var(--r-sm); padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--line); border-top-width: 3px; font-size: 12.5px; }
+.plan-zone { border-radius: var(--r-sm); padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between; font-size: 12.5px; }
 .plan-zone b { font-weight: 600; font-size: 13px; }
-.plan-zone.act { border-top-color: var(--act); background: var(--act-bg); }
-.plan-zone.watch { border-top-color: var(--watch); }
-.plan-zone.low { border-top-color: var(--low); }
+.plan-zone.act { background: var(--act-bg); }
+.plan-zone.watch { background: var(--watch-bg); }
+.plan-zone.low { background: var(--low-bg); }
 .plan-zone .meta { color: var(--ink-2); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 8px; }
 
 .sensor .num { font-size: 24px; }

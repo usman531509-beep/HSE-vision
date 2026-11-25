@@ -1,0 +1,90 @@
+/** Coach marks: one guided tour per page. `target` is the element's data-tour value. Missing or hidden targets are skipped. */
+export interface TourStep { target: string; title: string; body: string }
+
+const HEAD = (title: string, body: string): TourStep => ({ target: 'head', title, body });
+
+export const TOURS: Record<string, TourStep[]> = {
+  control: [
+    HEAD('Control room', 'Your start page. It shows how safe the site is right now and what needs a decision first.'),
+    { target: 'shell-nav', title: 'Modules', body: 'Every module is one click away. Red and lime badges count open items, such as incidents waiting for review.' },
+    { target: 'range', title: 'Time range', body: 'Switch between this shift, the last 24 hours and the last 7 days. The numbers and charts below follow the choice.' },
+    { target: 'report', title: 'Report an incident', body: 'Log an incident or near-miss by hand. Camera and sensor events are logged for you.' },
+    { target: 'stats', title: 'Headline numbers', body: 'Site risk index, real alerts after filtering out noise, machine stops made by the system, and open follow-up actions.' },
+    { target: 'zones', title: 'Highest-risk zones', body: 'The five zones with the highest risk score, ranked. Click one to see why it scored high and what was done.' },
+    { target: 'zone-risk', title: 'Zone risk', body: 'Every zone with its score out of 100 and the reason. 70 or more means act now, 40 to 69 means watch.' },
+    { target: 'site-risk', title: 'Site risk gauge', body: 'One number for the whole site, compared with last week and the act threshold.' },
+    { target: 'shift', title: 'Risk through the shift', body: 'Predicted risk for each hour of the shift, so you can plan cover for the riskiest hours such as changeover.' },
+    { target: 'events', title: 'Live events', body: 'Everything the cameras and sensors raised, newest first. Filter by severity.' },
+    { target: 'decisions', title: 'See · Decide · Act', body: 'What the agent decided and the facts it checked first, such as permits, lockout and the roster.' },
+    { target: 'actions', title: 'Follow-up actions', body: 'The most urgent corrective actions, each with an owner and a due date.' },
+    { target: 'waste', title: 'Waste & energy', body: 'Spills, scrap and energy use for today, tracked alongside safety.' },
+    { target: 'audit', title: 'Audit readiness', body: 'How much evidence each standard already has. Open Compliance for the gaps.' },
+    { target: 'shell-ask', title: 'Ask the data', body: 'Ask a question in plain words, for example “Why did Press 3 stop?”. Answers come with their sources.' },
+    { target: 'shell-bell', title: 'Notifications', body: 'High-severity events that need you. The red dot means something is unread.' },
+    { target: 'shell-guide', title: 'Replay this guide', body: 'Open the guide again on any page to tour that page’s modules.' },
+  ],
+  live: [
+    HEAD('Live floor', 'What every camera and sensor sees right now, zone by zone.'),
+    { target: 'camera', title: 'Camera view', body: 'The selected camera with its detections drawn on the picture. Pick another camera from the list below the view.' },
+    { target: 'plan', title: 'Floor plan', body: 'Each zone coloured by its risk level, with the number of people in it now.' },
+    { target: 'sensors', title: 'Sensors', body: 'Power, compressed air, temperature, gas and vibration, with the last 12 readings as a trend.' },
+    { target: 'machines', title: 'Machines', body: 'State of every machine: running, stopped, idle or locked out.' },
+  ],
+  spatial: [
+    HEAD('Spatial view', 'A live 3D model of the hall. People and vehicles seen by the cameras are placed on the floor and checked against the rules.'),
+    { target: 'spatial-stats', title: 'Live counts', body: 'People tracked, hard hats on, machine stops and forklift near-misses since you opened the page.' },
+    { target: 'spatial-model', title: 'Hall model', body: 'Drag to orbit and scroll to zoom. Rings under workers turn amber or red when a rule is broken. Click a camera in the model to watch it.' },
+    { target: 'spatial-layers', title: 'Layers', body: 'Show or hide camera view cones, danger zones and name tags.' },
+    { target: 'spatial-pause', title: 'Pause', body: 'Freeze the simulation to look at a moment more closely.' },
+    { target: 'spatial-feed', title: 'Camera feed', body: 'The view from the selected camera, with each person, vehicle, spill and machine boxed and labelled.' },
+    { target: 'spatial-cams', title: 'Choose a camera', body: 'Switch cameras. A red square means that camera has an alert in view right now.' },
+    { target: 'spatial-detections', title: 'Detections', body: 'Everything detected in the current view, with confidence and whether it breaks a rule.' },
+    { target: 'spatial-events', title: 'Spatial events', body: 'Rules raised from positions in the model: danger-zone entry, missing safety gear, forklift proximity, people outside the walkway. Watch jumps to a camera that saw it.' },
+  ],
+  incidents: [
+    HEAD('Incidents & near-misses', 'Every incident from first report to a filed investigation.'),
+    { target: 'kpis', title: 'This month at a glance', body: 'Open incidents, near-misses and how fast they are closed.' },
+    { target: 'list', title: 'Incident list', body: 'Filter by type and pick one to open its investigation.' },
+    { target: 'detail', title: 'Investigation', body: 'Progress through the stages, likely causes, the standard clauses involved and a drafted report. A person approves it before it is filed.' },
+  ],
+  permits: [
+    HEAD('Permits & lockout', 'Hot work, confined space and lockout, checked before any alarm is raised.'),
+    { target: 'kpis', title: 'Permit summary', body: 'Active permits, approvals waiting, verified lockouts and permits about to expire.' },
+    { target: 'approvals', title: 'Waiting for approval', body: 'The agent checks training and the roster first. You approve or decline.' },
+    { target: 'active', title: 'Active permits', body: 'Live permits with their checks and the time left on each.' },
+    { target: 'lockout', title: 'Lockout board', body: 'Every lockout, who applied it and who checked it. Red rows have no lockout where one is needed.' },
+  ],
+  inspections: [
+    HEAD('Inspections & audits', 'Mobile checklists with photo evidence. Every finding becomes a tracked action.'),
+    { target: 'kpis', title: 'Inspection summary', body: 'Inspections done, overdue and the pass rate.' },
+    { target: 'schedule', title: 'Schedule', body: 'What is due, when and who is doing it.' },
+    { target: 'checklist', title: 'Checklist in progress', body: 'Mark each item Pass, Fail or N/A. Failed items turn into follow-up actions with an owner.' },
+    { target: 'findings', title: 'Recent findings', body: 'Findings from recent inspections and the actions they created.' },
+  ],
+  actions: [
+    HEAD('Follow-up actions', 'Corrective and preventive actions. Cameras confirm the fix before an action closes.'),
+    { target: 'head', title: 'Filter by owner', body: 'Show everyone’s actions or one person’s.' },
+    { target: 'board', title: 'Action board', body: 'Actions move from open to verified. Use the button on a card to move it to the next stage. Overdue dates are red.' },
+  ],
+  compliance: [
+    HEAD('Compliance', 'Site activity mapped to each standard, and the evidence still missing.'),
+    { target: 'kpis', title: 'Coverage', body: 'How much of the selected standard is covered by evidence, and what is next.' },
+    { target: 'clauses', title: 'Clause by clause', body: 'Each clause with its status and the evidence behind it.' },
+    { target: 'gaps', title: 'Missing evidence', body: 'Gaps to close before an audit, each linked to a follow-up action.' },
+    { target: 'ask', title: 'Ask compliance', body: 'Ask about a clause or a standard in plain words.' },
+  ],
+  training: [
+    HEAD('Training', 'Who is trained for what, and who needs a refresher.'),
+    { target: 'kpis', title: 'Training summary', body: 'Valid, expiring and missing training across the shift.' },
+    { target: 'matrix', title: 'Competency matrix', body: 'Each person against each skill. Permits are only approved for people with valid training.' },
+    { target: 'attention', title: 'Needs attention', body: 'Training that has expired or expires soon.' },
+    { target: 'reminders', title: 'Automatic reminders', body: 'Reminders sent in Urdu or English by text or voice.' },
+  ],
+  reports: [
+    HEAD('Reports', 'What leadership opens every morning, plus the reports that write themselves.'),
+    { target: 'trend', title: 'Weekly trend', body: 'Incidents against near-misses. More near-misses and fewer incidents means problems are caught earlier.' },
+    { target: 'briefing', title: 'Morning briefing', body: 'Sent at 06:30. Every line links to its source.' },
+    { target: 'library', title: 'Report library', body: 'Download any report as PDF or Excel.' },
+    { target: 'routines', title: 'Routines', body: 'Reports that run on a schedule or trigger. Switch each one on or off.' },
+  ],
+};

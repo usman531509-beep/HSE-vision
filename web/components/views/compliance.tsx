@@ -33,7 +33,7 @@ export function ComplianceView() {
           ]}
         />
         <div className="grid grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] gap-4 max-nav:grid-cols-1">
-          <Card title={`${d.name} · clause by clause`}>
+          <Card tour="clauses" title={`${d.name} · clause by clause`}>
             <Table head={['Clause', 'Requirement', 'Evidence', 'Status']}>
               {d.clauses.map((c) => {
                 const t = SEV[clauseState[c[3]]];
@@ -46,7 +46,7 @@ export function ComplianceView() {
             </Table>
           </Card>
           <div className="grid content-start gap-4">
-            <Card title="Missing evidence" sub="Each linked to a follow-up action">
+            <Card tour="gaps" title="Missing evidence" sub="Each linked to a follow-up action">
               <div className={list}>
                 {d.gaps.map((g) => (
                   <div key={g[0]} className={row}>
@@ -59,7 +59,7 @@ export function ComplianceView() {
                 ))}
               </div>
             </Card>
-            <Card title="Ask compliance" note>
+            <Card tour="ask" title="Ask compliance" note>
               <p className="text-[15px]">“{askCompliance.q}”</p>
               <p>{askCompliance.a}</p>
               <div className="flex flex-wrap gap-1.5">{askCompliance.refs.map((r) => <Chip key={r} tone="off">{r}</Chip>)}</div>

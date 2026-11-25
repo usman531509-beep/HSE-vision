@@ -15,7 +15,7 @@ export type Kpi = [string, string, string, string];
 /** [id, title, source, owner, due, priority, stage] */
 export type Action = [string, string, string, string, string, Sev, number];
 
-export const site = { name: 'Plant A · Blow-molding hall', shift: 'Shift B · 14:00–22:00', user: 'Muhammad Bilal', initials: 'MB', org: 'Qubit Dynamics · HSE Copilot' };
+export const site = { name: 'Plant A · Blow-molding hall', shift: 'Shift B · 14:00–22:00', user: 'Laiba Fatima', initials: 'LF', org: 'Qubit Dynamics · HSE Copilot' };
 
 /* ---------- Control room ---------- */
 export type Range = 'shift' | 'day' | 'week';

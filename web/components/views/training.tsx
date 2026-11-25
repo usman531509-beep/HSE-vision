@@ -39,6 +39,7 @@ export function TrainingView() {
       <Panel>
         <Kpis items={trainingKpis} />
         <Card
+          tour="matrix"
           title="Shift B · competency matrix"
           extra={<Legend>{['v', 'e', 'x', 'n'].map((k) => <span key={k}><Mark k={k} small />{MARK[k][1]}</span>)}</Legend>}
         >
@@ -52,7 +53,7 @@ export function TrainingView() {
           </Table>
         </Card>
         <div className="grid grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] gap-4 max-nav:grid-cols-1">
-          <Card title="Needs attention">
+          <Card tour="attention" title="Needs attention">
             <div className={list}>
               {attention.map((a) => (
                 <div key={a[0] + a[1]} className={row}>
@@ -63,7 +64,7 @@ export function TrainingView() {
               ))}
             </div>
           </Card>
-          <Card title="Automatic reminders" sub="Sent in Urdu or English, by text or voice.">
+          <Card tour="reminders" title="Automatic reminders" sub="Sent in Urdu or English, by text or voice.">
             <div>{reminders.map((r) => <KV key={r[0]} k={r[0]} v={r[1]} vClass={r[1] === 'Permits blocked' ? 'text-act-ink' : undefined} />)}</div>
           </Card>
         </div>

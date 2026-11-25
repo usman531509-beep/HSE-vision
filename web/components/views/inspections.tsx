@@ -27,7 +27,7 @@ export function InspectionsView() {
       <Panel>
         <Kpis items={inspectionKpis} />
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)] gap-4 max-nav:grid-cols-1">
-          <Card title="Schedule">
+          <Card tour="schedule" title="Schedule">
             <div className={list}>
               {schedule.map((x) => (
                 <div key={x[1]} className={row}>
@@ -38,10 +38,10 @@ export function InspectionsView() {
             </div>
           </Card>
 
-          <Card title="Press hall · weekly machine guarding" sub="In progress · started 18:20 by Sana M." extra={<Chip tone="watch">In progress</Chip>}>
+          <Card tour="checklist" title="Press hall · weekly machine guarding" sub="In progress · started 18:20 by Sana M." extra={<Chip tone="watch">In progress</Chip>}>
             <div>
               <div className="mb-1.5 flex justify-between text-[12.5px] text-ink-2 tabular-nums"><span>Progress</span><b className="font-medium">{done} of {total} checked</b></div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-track"><span className="block h-full rounded-full bg-lime transition-[width] duration-300 ease-out" style={{ width: `${Math.round((done / total) * 100)}%` }} /></div>
+              <div className="h-2.5 overflow-hidden rounded-[5px] bg-track"><span className="block h-full rounded-[5px] bg-lime transition-[width] duration-300 ease-out" style={{ width: `${Math.round((done / total) * 100)}%` }} /></div>
             </div>
             <div className={list}>
               {checklist.map((it, n) => (
@@ -57,7 +57,7 @@ export function InspectionsView() {
                         type="button"
                         aria-pressed={s.answers[n] === v}
                         onClick={() => set((p) => ({ answers: { ...p.answers, [n]: v } }))}
-                        className={cx('h-8 min-w-[56px] rounded-full px-3 text-[12.5px] font-medium text-muted ring-1 ring-line hover:bg-sunk', PF_ON[v])}
+                        className={cx('h-8 min-w-[56px] rounded-[8px] px-3 text-[12.5px] font-medium text-muted ring-1 ring-line hover:bg-sunk', PF_ON[v])}
                       >
                         {label}
                       </button>
@@ -86,7 +86,7 @@ export function InspectionsView() {
           </Card>
         </div>
 
-        <Card title="Recent findings">
+        <Card tour="findings" title="Recent findings">
           <Table head={['Finding', 'Inspection', 'Date', 'Risk', 'Action']}>
             {findings.map((f) => (
               <tr key={f[0]} className={f[3] === 'High' ? 'warn' : undefined}>

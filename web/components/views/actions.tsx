@@ -19,13 +19,13 @@ export function ActionsView() {
         tools={<Filters label="Filter by owner" options={actionOwners} value={owner} onChange={(v) => set({ owner: v })} />}
       />
       <Panel>
-        <div className="grid grid-cols-4 items-start gap-4 max-xl:grid-cols-2 max-compact:grid-cols-1">
+        <div data-tour="board" className="grid grid-cols-4 items-start gap-4 max-xl:grid-cols-2 max-compact:grid-cols-1">
           {actionCols.map((title, i) => {
             const cs = all.filter((a) => a.stage === i);
             return (
               <section key={title} aria-label={title} className="flex min-h-[200px] flex-col gap-2">
-                <div className="flex h-11 items-center justify-between rounded-full bg-paper/90 pr-1.5 pl-4 text-[13.5px] font-medium ring-1 ring-white/70 backdrop-blur">
-                  {title}<span className="grid h-8 min-w-8 place-items-center rounded-full bg-ink px-2 text-xs font-semibold text-paper tabular-nums">{cs.length}</span>
+                <div className="flex h-11 items-center justify-between rounded-[8px] bg-paper pr-1.5 pl-4 text-[13.5px] font-medium ring-1 ring-line">
+                  {title}<span className="grid h-8 min-w-8 place-items-center rounded-[8px] bg-ink px-2 text-xs font-semibold text-paper tabular-nums">{cs.length}</span>
                 </div>
                 {cs.length ? cs.map((a) => {
                   const initials = a.owner.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
@@ -36,7 +36,7 @@ export function ActionsView() {
                       <span className="text-[12.5px] text-muted">From {a.source}</span>
                       <div className="flex items-center justify-between gap-2 text-[12.5px] text-ink-2">
                         <span className="inline-flex items-center gap-[7px]">
-                          <span className="grid size-7 place-items-center rounded-full bg-sage text-[10.5px] font-semibold text-ink" aria-hidden="true">{initials}</span>
+                          <span className="grid size-7 place-items-center rounded-[5px] bg-sage text-[10.5px] font-semibold text-ink" aria-hidden="true">{initials}</span>
                           {a.owner}
                         </span>
                         <span className={cx(a.late && 'font-semibold text-act-ink')}>{a.late ? 'Overdue · ' : ''}{a.due}</span>
