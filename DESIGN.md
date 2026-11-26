@@ -97,8 +97,8 @@ shell ─┬─ sidebar 248 (sticky, full height, hairline right edge): brand ·
 
 Breakpoints:
 - **≤ 1280 px:** Control room grid reflows; the actions board goes to 2 columns.
-- **≤ 1100 px:** the sidebar becomes an off-canvas drawer (menu button, Esc or scrim to close), the zone strip goes to 3 columns, and two-column layouts stack.
-- **≤ 720 px:** everything is a single column, and the site and shift pills hide.
+- **≤ 1100 px:** the sidebar collapses to a 64 px icon rail (its menu button opens the full sidebar as an off-canvas drawer; Esc or scrim to close), the zone strip goes to 3 columns, and two-column layouts stack.
+- **≤ 720 px:** the rail hides and a top-bar menu button opens the drawer; everything is a single column, and the site and shift pills hide.
 
 ## 4. Screens
 

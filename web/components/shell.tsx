@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 import { site } from '@/lib/data';
 import { PAGES, pageForPath } from '@/lib/pages';
 import { useHse } from './state';
-import { Logo } from './logo';
+import { Logo, LogoMark } from './logo';
 import { Tour, useAutoTour } from './tour';
 import { cx, Icon } from './ui';
 
@@ -55,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [s.menuOpen, set]);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-[1560px] gap-6 px-6 max-nav:block max-compact:px-4">
+    <div className="mx-auto flex min-h-screen max-w-[1560px] gap-6 px-6 max-nav:gap-4 max-compact:block max-compact:px-4">
       {s.menuOpen ? (
         <button
           type="button"
@@ -65,6 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       ) : null}
       <Sidebar pathname={pathname} open={s.menuOpen} />
+      <Rail pathname={pathname} onMenu={() => set({ menuOpen: true })} />
       <div className="relative min-w-0 flex-1 pb-10">
         <TopBar onMenu={() => set({ menuOpen: true })} onGuide={startTour} />
         <main>{children}</main>
@@ -148,6 +149,51 @@ function Sidebar({ pathname, open }: { pathname: string; open: boolean }) {
   );
 }
 
+/**
+ * Icon rail for mid widths (720–1100px, e.g. a split screen): the full sidebar is a drawer there,
+ * so the rail keeps every screen one click away. The menu button opens the full drawer.
+ */
+function Rail({ pathname, onMenu }: { pathname: string; onMenu: () => void }) {
+  return (
+    <aside className="sticky top-4 z-20 my-4 hidden h-[calc(100vh-2rem)] w-[64px] flex-none flex-col items-center gap-2 self-start rounded-lg bg-paper py-3 shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line compact:max-nav:flex">
+      <Link href="/" aria-label="Visual HSE home" className="grid size-11 place-items-center rounded-[8px]">
+        <span className="grid size-9 place-items-center rounded-[9px] bg-ink text-paper [--logo-cut:#141414]">
+          <LogoMark className="size-[26px]" />
+        </span>
+      </Link>
+      <button type="button" aria-label="Open menu" aria-controls="sidebar" onClick={onMenu} className="grid size-11 place-items-center rounded-[8px] text-ink hover:bg-sunk">
+        <Icon name="menu" />
+      </button>
+      <nav aria-label="Main (compact)" className="mt-1 flex w-full flex-1 flex-col items-center overflow-y-auto [scrollbar-width:none]">
+        <ul className="flex flex-col gap-0.5">
+          {PAGES.map((p) => {
+            const here = pathname === p.href;
+            return (
+              <li key={p.id}>
+                <Link
+                  href={p.href}
+                  aria-current={here ? 'page' : undefined}
+                  aria-label={p.nav}
+                  title={p.nav}
+                  className="group relative grid size-11 place-items-center rounded-[8px] text-ink-2 hover:bg-sunk aria-[current=page]:bg-ink"
+                >
+                  <p.icon aria-hidden="true" strokeWidth={1.75} className="size-[18px] text-muted group-hover:text-ink group-aria-[current=page]:text-lime" />
+                  {p.count ? (
+                    <span className={cx('absolute top-1.5 right-1.5 size-2 rounded-[2px] ring-2 ring-paper', p.count[1] === 'act' ? 'bg-act' : 'bg-lime')} aria-hidden="true" />
+                  ) : null}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+      <span className="grid size-10 flex-none place-items-center rounded-[8px] bg-ink text-[12.5px] font-semibold text-lime" role="img" aria-label={`Signed in as ${site.user}`}>
+        {site.initials}
+      </span>
+    </aside>
+  );
+}
+
 function CloseBtn() {
   const { set } = useHse();
   return (
@@ -160,13 +206,12 @@ function CloseBtn() {
 function TopBar({ onMenu, onGuide }: { onMenu: () => void; onGuide: () => void }) {
   return (
     <header className="relative z-20 flex items-center justify-between gap-3 pt-4 pb-3 nav:absolute nav:top-0 nav:right-0 nav:pb-0">
-      <div className="flex items-center gap-2 nav:hidden">
+      <div className="flex items-center gap-2 compact:hidden">
         <button type="button" className={roundBtn} aria-label="Open menu" aria-controls="sidebar" onClick={onMenu}>
           <Icon name="menu" />
         </button>
-        <span className="max-compact:hidden"><Brand /></span>
       </div>
-      <div className="flex flex-none items-center gap-2">
+      <div className="ml-auto flex flex-none items-center gap-2">
         <button type="button" className="inline-flex h-11 flex-none items-center gap-2 rounded-[8px] bg-paper px-4 text-[13px] font-medium text-ink shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line hover:bg-sunk" onClick={onGuide} data-tour="shell-guide">
           <Icon name="help" />Guide
         </button>
@@ -175,7 +220,7 @@ function TopBar({ onMenu, onGuide }: { onMenu: () => void; onGuide: () => void }
           <Icon name="bell" />
           <span className="absolute top-2.5 right-3 size-2 rounded-[2px] bg-act ring-2 ring-paper" />
         </button>
-        <span className="grid size-11 place-items-center rounded-[8px] bg-ink text-[13px] font-semibold text-lime nav:hidden" role="img" aria-label={`Signed in as ${site.user}`}>
+        <span className="grid size-11 place-items-center rounded-[8px] bg-ink text-[13px] font-semibold text-lime compact:hidden" role="img" aria-label={`Signed in as ${site.user}`}>
           {site.initials}
         </span>
       </div>
