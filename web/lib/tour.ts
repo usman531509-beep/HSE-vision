@@ -4,6 +4,10 @@ export interface TourStep { target: string; title: string; body: string }
 const HEAD = (title: string, body: string): TourStep => ({ target: 'head', title, body });
 
 export const TOURS: Record<string, TourStep[]> = {
+  ask: [
+    HEAD('Ask IonHSE', 'Ask about the plant in plain words — zones, alerts, incidents, hazards, compliance — in English or Urdu.'),
+    { target: 'chat', title: 'Grounded answers', body: 'Every answer is built from the same records the dashboard shows, with a chart where it helps. The figures are checked before you see them, and the sources are named.' },
+  ],
   voice: [
     HEAD('Voice reporting', 'Workers report a hazard by speaking, in Urdu or English, instead of filling a form on paper.'),
     { target: 'kpis', title: 'Why it helps', body: 'A spoken report is logged in seconds, not minutes, and most of the fields are filled in for the worker.' },

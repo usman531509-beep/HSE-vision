@@ -129,6 +129,15 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
+    id: 'ask', title: 'Ask IonHSE', href: '/ask',
+    summary: 'A chat assistant that answers questions about the plant from the same records the dashboard shows.',
+    tasks: [
+      { title: 'Ask a question', steps: ['Open Ask IonHSE from the sidebar or the search button in the top bar.', 'Type a question, or pick a suggestion.', 'Read the answer — it names its sources and marks that the figures were checked.'] },
+      { title: 'Start again', steps: ['Select New chat at the top right to clear the conversation.'] },
+    ],
+    tips: ['Every figure in an answer comes from the same data as the dashboard, so the two always agree.'],
+  },
+  {
     id: 'voice', title: 'Voice reporting', href: '/voice',
     summary: 'Report a hazard or near-miss by speaking, in Urdu or English. The copilot transcribes it and drafts a report.',
     tasks: [
