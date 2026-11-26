@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { CameraView } from '@/components/views/camera';
+import { CamerasView } from '@/components/views/cameras';
 
-export const metadata: Metadata = { title: 'Camera analysis' };
+export const metadata: Metadata = { title: 'Cameras' };
 
 export default function Page() {
-  return <CameraView />;
+  return <CamerasView />;
 }

@@ -46,11 +46,17 @@ export const GUIDES: Guide[] = [
     tips: ['Real alerts are the ones left after the system checks permits, lockout and the roster. The “quiet” number is what it filtered out.'],
   },
   {
-    id: 'live', title: 'Live floor', href: '/live',
-    summary: 'What every camera and sensor sees right now, zone by zone.',
+    id: 'cameras', title: 'Cameras', href: '/camera',
+    summary: 'One place for cameras: a Live wall of what every camera sees now, and Recorded analysis that checks uploaded clips for people, safety gear and restricted-area entry.',
     tasks: [
-      { title: 'Watch a camera', steps: ['Pick a camera from the list next to the view.', 'Boxes on the picture show what was detected. Red breaks a rule, amber is a warning, green is fine.', 'The summary under the picture explains what the camera saw.'] },
-      { title: 'Check sensors and machines', steps: ['Sensors show the last 12 readings as a small trend.', 'Machines lists every machine as running, stopped, idle or locked out.'] },
+      { title: 'Watch the live wall', steps: ['Open the Live tab.', 'Every camera shows as a tile with detection boxes — red breaks a rule, amber is a warning, green is fine.', 'Sensors and the floor plan below cover the rest of the floor.'] },
+      { title: 'Review a recorded event', steps: ['Open the Recorded analysis tab and pick a camera.', 'Select an event in the list; the video jumps to that moment.', 'Check the evidence frame, then Confirm or mark it a false alarm.'] },
+      { title: 'Draw a restricted area', steps: ['In Recorded analysis, select Camera setup.', 'Click the picture to place at least three corners, name the area and Save.'] },
+      { title: 'Analyse a new video', steps: ['Select Upload video and choose an MP4, MOV or WebM up to 2 minutes.', 'When it finishes, people are boxed and entries and possible missing gear are listed.'] },
+    ],
+    tips: [
+      'person-1, person-2 and so on are tracking numbers for one video only, not names.',
+      'Missing gear shows as possible until a person confirms it; the camera angle can hide gear.',
     ],
   },
   {
@@ -70,36 +76,6 @@ export const GUIDES: Guide[] = [
       'Rings under workers turn red when a rule is broken and amber for a warning.',
       'Red hatched floor is a danger zone. Green hatched floor is a pedestrian walkway.',
       'The forklift slows down by itself when a person is in front of it.',
-    ],
-  },
-  {
-    id: 'camera', title: 'Camera analysis', href: '/camera',
-    summary: 'Checks recorded site video for people, safety gear and restricted-area entry. Every finding becomes an event that a person confirms or dismisses.',
-    tasks: [
-      { title: 'Review an event', steps: [
-        'Pick a camera at the top of the page.',
-        'Select an event in Events in this video. The video jumps to that moment.',
-        'Look at the evidence frame and the person highlighted in the video.',
-        'Select Confirm, or False alarm if the picture does not show the problem.',
-      ] },
-      { title: 'Draw a restricted area', steps: [
-        'Select Camera setup.',
-        'Click the picture to place at least three corners around the area.',
-        'Name the area and select Save area. Camera analysis now checks it.',
-      ] },
-      { title: 'Delete a camera', steps: [
-        'Open Camera setup and pick the camera.',
-        'Delete its videos in Videos and its areas in Restricted areas.',
-        'Select Delete camera at the bottom of Camera details and confirm.',
-      ] },
-      { title: 'Choose the safety gear to check', steps: ['Open Camera setup and pick the camera.', 'Tick the gear everyone must wear.', 'Select Save camera.'] },
-      { title: 'Analyse a new video', steps: ['Select Upload video and choose an MP4, MOV or WebM file up to 2 minutes long.', 'How the analysis runs shows each step while it processes.', 'When it finishes, people are boxed and restricted-area entries and possible missing gear are listed.'] },
-    ],
-    tips: [
-      'person-1, person-2 and so on are tracking numbers for one video only. They are not names.',
-      'A person counts as inside an area when their feet are inside it.',
-      'Missing gear is shown as possible until a person confirms it. Gear can be hidden by the camera angle.',
-      'People and helmets, vests, gloves and masks are found by AI models. Hairnets cannot be checked by the model yet.',
     ],
   },
   {

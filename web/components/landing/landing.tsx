@@ -338,7 +338,7 @@ export function Landing() {
             <span className="lp-word big">Visual HSE</span>
             <nav aria-label="Product screens">
               <Link href="/">Control room</Link>
-              <Link href="/live">Live floor</Link>
+              <Link href="/camera">Cameras</Link>
               <Link href="/spatial">Spatial view</Link>
               <Link href="/incidents">Incidents</Link>
               <Link href="/compliance">Compliance</Link>

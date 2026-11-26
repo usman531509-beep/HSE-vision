@@ -1,5 +1,5 @@
 import {
-  BookOpen, Box, Cctv, ChartColumn, ClipboardCheck, FileLock2, Files, GraduationCap, LayoutDashboard, ListTodo, MessageSquareText, Mic, ScanEye, ShieldAlert, ShieldCheck, Thermometer, TriangleAlert, type LucideIcon,
+  BookOpen, Box, Cctv, ChartColumn, ClipboardCheck, FileLock2, Files, GraduationCap, LayoutDashboard, ListTodo, MessageSquareText, Mic, ShieldAlert, ShieldCheck, Thermometer, TriangleAlert, type LucideIcon,
 } from 'lucide-react';
 import type { Tone } from './data';
 
@@ -8,8 +8,7 @@ export interface PageDef { id: string; href: string; nav: string; title: string;
 export const PAGES: PageDef[] = [
   { id: 'control', href: '/', nav: 'Overview', title: 'Control room', icon: LayoutDashboard },
   { id: 'ask', href: '/ask', nav: 'Ask IonHSE', title: 'Ask IonHSE', icon: MessageSquareText },
-  { id: 'live', href: '/live', nav: 'Live floor', title: 'Live floor', icon: Cctv },
-  { id: 'camera', href: '/camera', nav: 'Camera analysis', title: 'Camera analysis', icon: ScanEye },
+  { id: 'cameras', href: '/camera', nav: 'Cameras', title: 'Cameras', icon: Cctv },
   { id: 'voice', href: '/voice', nav: 'Voice reporting', title: 'Voice reporting', icon: Mic, count: ['2', 'watch'] },
   { id: 'spatial', href: '/spatial', nav: 'Spatial view', title: 'Spatial view', icon: Box },
   { id: 'heat', href: '/heat', nav: 'Heat risk', title: 'Heat risk', icon: Thermometer },
@@ -27,7 +26,7 @@ export const PAGES: PageDef[] = [
 
 /** Pages reached from a module rather than the sidebar; `parent` stays lit in the nav. */
 export const SUBPAGES: { id: string; href: string; title: string; parent: string }[] = [
-  { id: 'camera-setup', href: '/camera/setup', title: 'Camera setup', parent: 'camera' },
+  { id: 'camera-setup', href: '/camera/setup', title: 'Camera setup', parent: 'cameras' },
 ];
 
 /** The page at a path: its id (tour), title, and the nav item to highlight. */
