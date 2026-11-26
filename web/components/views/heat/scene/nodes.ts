@@ -11,7 +11,7 @@ export interface OutputNode extends Node { key: OutputKey; orb: THREE.MeshBasicM
 export interface Nodes { forecast: Node; registers: Node; outputs: OutputNode[]; dispose: () => void }
 
 /** Set back from the camera (negative z) so they don't loom large in the low, close view. */
-const OUTPUTS: [OutputKey, string, string, number][] = [['briefing', 'Briefing', '#briefing', -4.2], ['alarm', 'Alarm', '#sensors', -1.6], ['ask', 'Ask IonHSE', '#ask', 1.0]];
+const OUTPUTS: [OutputKey, string, string, number][] = [['briefing', 'Briefing', '#briefing', -4.2], ['alarm', 'Alarm', '#sensors', -1.6], ['ask', 'Ask Shade', '#ask', 1.0]];
 
 
 /** `forecastAt` is the sun disc, so the forecast trail starts at the sun. */

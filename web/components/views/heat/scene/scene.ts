@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import type { Tone } from '@/lib/data';
+import { buildApron } from './apron';
 import { disposeTree, loadEnvironment, loadModels, type Models } from './assets';
 import { Engine } from './engine';
 import { HeatField, type HeatSpot } from './heatfield';
@@ -25,8 +26,8 @@ export interface SceneLayout { zones: string[]; sensors: { id: string; area: str
 
 const CORE = new THREE.Vector3(0, 4.7, 0);
 const TARGET = new THREE.Vector3(0, 1.6, 0);
-/** Eye-level-ish view (about 16° down) so the horizon and sky sit at the top, like a photo taken on site. */
-const VIEW_DIR = new THREE.Vector3(0.45, 0.31, 1).normalize();
+/** Eye-level-ish view (about 13° down) so the horizon, sky and low sun sit at the top, like a photo taken on site. */
+const VIEW_DIR = new THREE.Vector3(0.45, 0.25, 1).normalize();
 const FOV = 38;
 /** Half-extents the camera must always show, in metres. */
 const FIT = { halfW: 13.6, halfH: 5.4 };
@@ -55,7 +56,8 @@ export function createHeatScene(host: HTMLElement, layout: SceneLayout, events: 
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.5, 400);
-  const sky = buildSky(scene, PERF.shadowMap);
+  const sky = buildSky(scene, renderer, PERF.shadowMap);
+  const apron = buildApron(scene, renderer);
   scene.add(new THREE.HemisphereLight(0xffffff, 0xc9ccc6, 0.5));
 
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -70,7 +72,7 @@ export function createHeatScene(host: HTMLElement, layout: SceneLayout, events: 
   scene.add(engine.group);
   const nodes = buildNodes(scene, FORECAST_AT);
   const packets = new Packets(scene);
-  const owned: { dispose: () => void }[] = [field, engine, nodes, packets, sky];
+  const owned: { dispose: () => void }[] = [field, engine, nodes, packets, sky, apron];
   renderer.shadowMap.needsUpdate = true;
 
   const perArea = new Map<string, number>();
@@ -119,7 +121,7 @@ export function createHeatScene(host: HTMLElement, layout: SceneLayout, events: 
   }
 
   let disposed = false;
-  Promise.all([loadModels('base'), loadEnvironment(renderer)])
+  Promise.all([loadModels('base'), loadEnvironment(renderer), sky.ready, apron.ready])
     .then(([models, env]) => {
       if (disposed) { env.dispose(); return; }
       scene.environment = env;
@@ -155,7 +157,9 @@ export function createHeatScene(host: HTMLElement, layout: SceneLayout, events: 
     camera.aspect = w / h;
     const vHalf = THREE.MathUtils.degToRad(camera.fov / 2);
     const hHalf = Math.atan(Math.tan(vHalf) * camera.aspect);
-    view.setFitDistance(Math.max(FIT.halfW / Math.tan(hHalf), FIT.halfH / Math.tan(vHalf)));
+    const fit = Math.max(FIT.halfW / Math.tan(hHalf), FIT.halfH / Math.tan(vHalf));
+    view.setFitDistance(fit);
+    sky.fit(fit);
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
     post.setSize(w, h);

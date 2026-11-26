@@ -123,14 +123,14 @@ export function Card({ title, sub, extra, className, note, children, id, tour }:
 }
 
 export function Panel({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-4">{children}</div>;
+  return <div className="flex flex-col gap-(--gutter)">{children}</div>;
 }
 
 /** KPI strip: [label, value, unit, note, labelExtra?, after?] — big light numbers on separate cards. */
 export type KpiItem = [string, ReactNode, string, ReactNode, ReactNode?, ReactNode?];
 export function Kpis({ items }: { items: KpiItem[] }) {
   return (
-    <div data-tour="kpis" className="grid grid-cols-4 gap-4 max-nav:grid-cols-2 max-compact:grid-cols-1">
+    <div data-tour="kpis" className="grid grid-cols-4 gap-(--gutter) max-nav:grid-cols-2 max-compact:grid-cols-1">
       {items.map(([label, value, unit, note, labelExtra, after], i) => (
         <div key={label} className={cx(card, 'gap-0', i === 0 && 'bg-sage')}>
           <div className="flex items-center justify-between gap-2 text-[13px] text-ink-2">{label}{labelExtra}</div>

@@ -23,11 +23,12 @@ export interface HseState {
   routinesOff: Record<number, boolean>;
   askNote: boolean;
   menuOpen: boolean;
+  /** Desktop sidebar shrunk to an icon rail. */
+  navCollapsed: boolean;
   heatDay: DayIndex;
   /** Selected heat-map cell, as cellKey() builds it. */
   heatCell: string;
   heatDecisions: Record<string, 'yes' | 'no'>;
-  heatAsk: number;
 }
 
 const initial: HseState = {
@@ -42,10 +43,10 @@ const initial: HseState = {
   routinesOff: { 3: true },
   askNote: false,
   menuOpen: false,
+  navCollapsed: false,
   heatDay: 1,
   heatCell: '1|Compressor|A',
   heatDecisions: {},
-  heatAsk: 0,
 };
 
 type Update = Partial<HseState> | ((s: HseState) => Partial<HseState>);

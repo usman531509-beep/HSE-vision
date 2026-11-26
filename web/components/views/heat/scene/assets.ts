@@ -15,7 +15,7 @@ export type Models = Map<ModelName, THREE.Object3D>;
 export type Quality = 'base' | 'hd';
 const MODEL_DIR: Record<Quality, string> = { base: '/heat/models', hd: '/heat/models-hd' };
 const MODEL_URL = (n: ModelName, q: Quality): string => `${MODEL_DIR[q]}/${n}.glb`;
-const HDRI_URL = '/heat/env/factory_yard_1k.hdr';
+const HDRI_URL = '/heat/env/freight_station_1k.hdr';
 
 /** Loads every model; one failing file only drops that prop from the scene. */
 export async function loadModels(quality: Quality = 'base'): Promise<Models> {
@@ -29,7 +29,7 @@ export async function loadModels(quality: Quality = 'base'): Promise<Models> {
   return out;
 }
 
-/** Image-based lighting from a real industrial-yard HDRI, prefiltered once. */
+/** Image-based lighting from the same freight-yard HDRI the backdrop photo shows, prefiltered once. */
 export async function loadEnvironment(renderer: THREE.WebGLRenderer): Promise<THREE.Texture> {
   const hdr = await new RGBELoader().loadAsync(HDRI_URL);
   const pmrem = new THREE.PMREMGenerator(renderer);

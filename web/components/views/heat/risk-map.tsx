@@ -78,6 +78,7 @@ export function RiskMap({ grid }: { grid: Cell[][] }) {
 
   return (
     <Card
+      id="risk-map"
       tour="heat-map"
       title="Heat-risk map"
       sub="Pick a cell to see how its score was built"

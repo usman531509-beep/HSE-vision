@@ -23,6 +23,18 @@ export function glowColor(name: TokenName, lum = GLOW_LUM): THREE.Color {
   return c.multiplyScalar(lum / Math.max(l, 0.01));
 }
 
+/** A texture drawn with the 2D canvas API, in sRGB. Used for the sky, glows and tiling surface patterns. */
+export function canvasTexture(size: number, draw: (g: CanvasRenderingContext2D) => void): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  if (!g) throw new Error('2D canvas is not available for scene textures');
+  draw(g);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 export const TONE_TOKEN: Record<Tone, TokenName> = { act: 'act', watch: 'watch', low: 'low', off: 'line-2', info: 'line-2' };
 
 export const GEO = {
