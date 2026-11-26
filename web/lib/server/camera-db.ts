@@ -35,10 +35,11 @@ CREATE TABLE IF NOT EXISTS reviews (
 const WANT_READ_ONLY = process.env.CAMERA_STORAGE ? process.env.CAMERA_STORAGE === 'readonly' : process.env.VERCEL === '1';
 
 // One connection per server process; dev hot reloads reuse it instead of opening a new one each time.
-const holder = globalThis as unknown as { cameraDb?: { conn: DatabaseSync; readOnly: boolean } };
+// Rename the key whenever the stored shape changes, or a running dev server would hand back the old object.
+const holder = globalThis as unknown as { cameraStoreV2?: { conn: DatabaseSync; readOnly: boolean } };
 
 function open(): { conn: DatabaseSync; readOnly: boolean } {
-  if (holder.cameraDb) return holder.cameraDb;
+  if (holder.cameraStoreV2) return holder.cameraStoreV2;
   let conn: DatabaseSync;
   let readOnly = WANT_READ_ONLY;
   try {
@@ -54,8 +55,8 @@ function open(): { conn: DatabaseSync; readOnly: boolean } {
   }
   const { n } = conn.prepare('SELECT COUNT(*) AS n FROM cameras').get() as { n: number };
   if (n === 0) seed(conn);
-  holder.cameraDb = { conn, readOnly };
-  return holder.cameraDb;
+  holder.cameraStoreV2 = { conn, readOnly };
+  return holder.cameraStoreV2;
 }
 
 const db = (): DatabaseSync => open().conn;
