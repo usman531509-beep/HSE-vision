@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { site } from '@/lib/data';
 import { PAGES, pageForPath } from '@/lib/pages';
 import { useHse } from './state';
@@ -64,8 +64,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={() => set({ menuOpen: false })}
         />
       ) : null}
-      <Sidebar pathname={pathname} open={s.menuOpen} />
-      <Rail pathname={pathname} onMenu={() => set({ menuOpen: true })} />
+      <Sidebar current={page.nav} open={s.menuOpen} />
+      <Rail current={page.nav} onMenu={() => set({ menuOpen: true })} />
       <div className="relative min-w-0 flex-1 pb-10">
         <TopBar onMenu={() => set({ menuOpen: true })} onGuide={startTour} />
         <main>{children}</main>
@@ -85,7 +85,7 @@ function Brand() {
   );
 }
 
-function Sidebar({ pathname, open }: { pathname: string; open: boolean }) {
+function Sidebar({ current, open }: { current: string; open: boolean }) {
   return (
     <aside
       id="sidebar"
@@ -105,7 +105,7 @@ function Sidebar({ pathname, open }: { pathname: string; open: boolean }) {
         <p className="px-3 pb-1.5 text-[11.5px] font-medium text-soft">Menu</p>
         <ul className="flex flex-col gap-0.5">
           {PAGES.map((p) => {
-            const here = pathname === p.href;
+            const here = current === p.id;
             return (
               <li key={p.id}>
                 <Link
@@ -153,7 +153,7 @@ function Sidebar({ pathname, open }: { pathname: string; open: boolean }) {
  * Icon rail for mid widths (720–1100px, e.g. a split screen): the full sidebar is a drawer there,
  * so the rail keeps every screen one click away. The menu button opens the full drawer.
  */
-function Rail({ pathname, onMenu }: { pathname: string; onMenu: () => void }) {
+function Rail({ current, onMenu }: { current: string; onMenu: () => void }) {
   return (
     <aside className="sticky top-4 z-20 my-4 hidden h-[calc(100vh-2rem)] w-[64px] flex-none flex-col items-center gap-2 self-start rounded-lg bg-paper py-3 shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line compact:max-nav:flex">
       <Link href="/" aria-label="Visual HSE home" className="grid size-11 place-items-center rounded-[8px]">
@@ -167,7 +167,7 @@ function Rail({ pathname, onMenu }: { pathname: string; onMenu: () => void }) {
       <nav aria-label="Main (compact)" className="mt-1 flex w-full flex-1 flex-col items-center overflow-y-auto [scrollbar-width:none]">
         <ul className="flex flex-col gap-0.5">
           {PAGES.map((p) => {
-            const here = pathname === p.href;
+            const here = current === p.id;
             return (
               <li key={p.id}>
                 <Link
@@ -228,43 +228,11 @@ function TopBar({ onMenu, onGuide }: { onMenu: () => void; onGuide: () => void }
   );
 }
 
-/** "Ask the data" lives behind a round button; the panel drops down under it. */
+/** "Ask IonHSE" opens the full chat page. */
 function AskData() {
-  const { s, set } = useHse();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onDown);
-    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown); };
-  }, [open]);
-
-  function ask(e: FormEvent) {
-    e.preventDefault();
-    set({ askNote: true });
-  }
-
   return (
-    <div ref={ref} className="relative" data-tour="shell-ask">
-      <button type="button" className={roundBtn} aria-label="Ask the data" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <Icon name="search" />
-      </button>
-      {open ? (
-        <form onSubmit={ask} className="absolute top-[52px] right-0 z-30 w-[320px] max-w-[calc(100vw-2rem)] rounded-lg bg-paper p-4 shadow-[0_20px_50px_-20px_rgb(0_0_0/0.25)] ring-1 ring-line">
-          <label htmlFor="ask-q" className="block text-[14px] font-medium">Ask the data</label>
-          <p className="mt-0.5 text-[12.5px] text-muted">
-            {s.askNote ? 'Answers with cited sources run in the pilot app. This preview shows the layout only.' : 'Answers come with cited sources.'}
-          </p>
-          <div className="mt-3 flex h-11 items-center gap-1.5 rounded-[8px] bg-sunk pr-1 pl-4 focus-within:ring-2 focus-within:ring-ink">
-            <input id="ask-q" autoFocus placeholder="Why did Press 3 stop?" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-[13px] outline-0 placeholder:text-soft" />
-            <button type="submit" aria-label="Ask" className="grid size-9 place-items-center rounded-[8px] bg-ink text-lime"><Icon name="send" className="size-4" /></button>
-          </div>
-        </form>
-      ) : null}
-    </div>
+    <Link href="/ask" aria-label="Ask IonHSE" data-tour="shell-ask" className={roundBtn}>
+      <Icon name="search" />
+    </Link>
   );
 }

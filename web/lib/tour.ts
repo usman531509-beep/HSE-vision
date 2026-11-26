@@ -4,6 +4,10 @@ export interface TourStep { target: string; title: string; body: string }
 const HEAD = (title: string, body: string): TourStep => ({ target: 'head', title, body });
 
 export const TOURS: Record<string, TourStep[]> = {
+  ask: [
+    HEAD('Ask IonHSE', 'Ask about the plant in plain words — zones, alerts, incidents, hazards, compliance — in English or Urdu.'),
+    { target: 'chat', title: 'Grounded answers', body: 'Every answer is built from the same records the dashboard shows, with a chart where it helps. The figures are checked before you see them, and the sources are named.' },
+  ],
   voice: [
     HEAD('Voice reporting', 'Workers report a hazard by speaking, in Urdu or English, instead of filling a form on paper.'),
     { target: 'kpis', title: 'Why it helps', body: 'A spoken report is logged in seconds, not minutes, and most of the fields are filled in for the worker.' },
@@ -55,6 +59,26 @@ export const TOURS: Record<string, TourStep[]> = {
     { target: 'spatial-cams', title: 'Choose a camera', body: 'Switch cameras. A red square means that camera has an alert in view right now.' },
     { target: 'spatial-detections', title: 'Detections', body: 'Everything detected in the current view, with confidence and whether it breaks a rule.' },
     { target: 'spatial-events', title: 'Spatial events', body: 'Rules raised from positions in the model: danger-zone entry, missing safety gear, forklift proximity, people outside the walkway. Watch jumps to a camera that saw it.' },
+  ],
+  camera: [
+    HEAD('Camera analysis', 'Recorded site video checked for people, safety gear and restricted-area entry. A person reviews every event.'),
+    { target: 'cam-pick', title: 'Choose a camera', body: 'Each camera has its own rules. The video, events and steps below follow the camera you pick.' },
+    { target: 'cam-stats', title: 'Headline numbers', body: 'Events still waiting for a review, restricted-area entries and how many videos have been analysed.' },
+    { target: 'cam-pipeline', title: 'How the analysis runs', body: 'The seven steps from video to review, with what each step found. While a new upload is processing, the current step is shown here.' },
+    { target: 'cam-player', title: 'Video with detections', body: 'Upload a video or open Camera setup from here. Boxes follow each person. Green is fine, amber is possible missing gear, red is inside a restricted area. Click the video to play or pause.' },
+    { target: 'cam-timeline', title: 'Timeline', body: 'Each coloured mark is an event. Select one to jump to that moment.' },
+    { target: 'cam-events', title: 'Events', body: 'Select an event to see its evidence frame, then Confirm it or mark it a False alarm.' },
+    { target: 'cam-analytics', title: 'By camera', body: 'Totals for every camera. Select a camera name to open it.' },
+    { target: 'cam-review', title: 'Review progress', body: 'How many events have been checked by a person so far.' },
+    { target: 'cam-setup-link', title: 'Camera setup', body: 'Draw restricted areas and choose the safety gear each camera checks.' },
+  ],
+  'camera-setup': [
+    HEAD('Camera setup', 'Set up each camera: the areas people must not enter and the safety gear to check.'),
+    { target: 'setup-zones', title: 'Restricted areas', body: 'Click the picture to place corners, name the area and save it. The list shows how many entries each area finds in the video.' },
+    { target: 'setup-form', title: 'Camera details', body: 'Name, area, the gear everyone must wear, and how long a finding must last. Delete camera works once its videos and areas are removed.' },
+    { target: 'setup-videos', title: 'Videos', body: 'Recorded videos for this camera. Upload another one, or delete one together with its events.' },
+    { target: 'setup-cameras', title: 'Cameras', body: 'Every camera with its video and rules. Select a camera to edit it, or add a video to it.' },
+    { target: 'setup-add', title: 'Add camera', body: 'Adds a new camera. Give it a name, then upload a recorded video for it.' },
   ],
   heat: [
     HEAD('Heat risk', 'HeatShield forecasts heat stress for every area and shift before work starts, so jobs can move before the heat peaks.'),

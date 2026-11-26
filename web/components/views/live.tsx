@@ -1,12 +1,13 @@
 'use client';
 
 import Image from 'next/image';
+import { BOX_COLOR } from '@/lib/camera/labels';
 import { cams, floorStats, machines, machineState, plan, sensors, type Sev } from '@/lib/data';
 import { Spark, TINT } from '../figures';
 import { useHse } from '../state';
 import { Card, Chip, cx, Dot, eyebrow, Foot, Icon, Legend, meta, Num, PageHead, Panel, SEV, Sq, Table, tile } from '../ui';
 
-const BOX: Partial<Record<Sev, string>> = { High: '#ff6a5a', Medium: '#f6b43e', Low: '#35c877' };
+const BOX: Partial<Record<Sev, string>> = { High: BOX_COLOR.act, Medium: BOX_COLOR.watch, Low: BOX_COLOR.low };
 
 export function LiveView() {
   const { s, set } = useHse();

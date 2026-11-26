@@ -1,0 +1,6 @@
+# Versions tested with this service. torch comes with ultralytics; for a smaller CPU-only install run first:
+#   pip install torch==2.15.0 torchvision==0.29.2 --index-url https://download.pytorch.org/whl/cpu
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+ultralytics==8.4.219
+lap==0.5.14
