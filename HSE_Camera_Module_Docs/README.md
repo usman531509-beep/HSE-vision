@@ -48,6 +48,7 @@ Follow the numbered documents in this folder:
 4. `04_API_AND_DATA_STRUCTURE.md`
 5. `05_WEBSITE_SCREENS.md`
 6. `06_TESTING_AND_DELIVERY_PLAN.md`
+7. `07_STATUS_AND_ROADMAP.md`: what is done and what can be worked on next
 
 ## Important limitations
 A model's detection is an indication, not proof of a safety violation. For example, a helmet may be hidden by camera angle or occlusion. A missing helmet detection must be checked across frames and validated before being presented as a confirmed violation. Spill detections should initially be labelled **Potential spill — review required**.
