@@ -13,7 +13,8 @@ export const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS cameras (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, area TEXT NOT NULL DEFAULT '',
-  required_gear TEXT NOT NULL DEFAULT '[]', confirm_frames INTEGER NOT NULL, sort INTEGER NOT NULL
+  required_gear TEXT NOT NULL DEFAULT '[]', confirm_frames INTEGER NOT NULL, sort INTEGER NOT NULL,
+  stream_url TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS zones (
   id TEXT PRIMARY KEY, camera_id TEXT NOT NULL REFERENCES cameras(id), name TEXT NOT NULL, points TEXT NOT NULL
@@ -43,10 +44,10 @@ const WANT_READ_ONLY = process.env.CAMERA_STORAGE ? process.env.CAMERA_STORAGE =
 
 // One connection per server process; dev hot reloads reuse it instead of opening a new one each time.
 // Rename the key whenever the stored shape changes, or a running dev server would hand back the old object.
-const holder = globalThis as unknown as { cameraStoreV4?: { conn: DatabaseSync; readOnly: boolean } };
+const holder = globalThis as unknown as { cameraStoreV5?: { conn: DatabaseSync; readOnly: boolean } };
 
 function open(): { conn: DatabaseSync; readOnly: boolean } {
-  if (holder.cameraStoreV4) return holder.cameraStoreV4;
+  if (holder.cameraStoreV5) return holder.cameraStoreV5;
   let conn: DatabaseSync;
   let readOnly = WANT_READ_ONLY;
   try {
@@ -62,20 +63,23 @@ function open(): { conn: DatabaseSync; readOnly: boolean } {
   }
   const { n } = conn.prepare('SELECT COUNT(*) AS n FROM cameras').get() as { n: number };
   if (n === 0) seed(conn);
-  else addGearColumn(conn);
+  else upgrade(conn);
   // Events are derived data: rebuilding them on start keeps them in step after any rules-code change.
   refreshEvents(conn, {});
-  holder.cameraStoreV4 = { conn, readOnly };
-  return holder.cameraStoreV4;
+  holder.cameraStoreV5 = { conn, readOnly };
+  return holder.cameraStoreV5;
 }
 
-/** Upgrades a database made before gear checks: adds the column and fills it in for the sample videos. */
-function addGearColumn(conn: DatabaseSync): void {
-  const cols = conn.prepare('PRAGMA table_info(videos)').all() as Row[];
-  if (cols.some((c) => c.name === 'gear')) return;
+/** Brings a database made by an older version up to date. */
+function upgrade(conn: DatabaseSync): void {
+  const has = (table: string, col: string) => (conn.prepare(`PRAGMA table_info(${table})`).all() as Row[]).some((c) => c.name === col);
   inTransaction(conn, () => {
-    conn.exec('ALTER TABLE videos ADD COLUMN gear TEXT');
-    for (const v of DEMO.videos) conn.prepare('UPDATE videos SET gear = ? WHERE id = ?').run(JSON.stringify(v.gear), v.id);
+    // Gear checks: fill in the sample videos' hand-checked results.
+    if (!has('videos', 'gear')) {
+      conn.exec('ALTER TABLE videos ADD COLUMN gear TEXT');
+      for (const v of DEMO.videos) conn.prepare('UPDATE videos SET gear = ? WHERE id = ?').run(JSON.stringify(v.gear), v.id);
+    }
+    if (!has('cameras', 'stream_url')) conn.exec("ALTER TABLE cameras ADD COLUMN stream_url TEXT NOT NULL DEFAULT ''");
   });
 }
 
@@ -87,7 +91,7 @@ export const isReadOnly = (): boolean => open().readOnly;
 function seed(conn: DatabaseSync): void {
   const now = new Date().toISOString();
   inTransaction(conn, () => {
-    DEMO.cameras.forEach((c, i) => conn.prepare('INSERT INTO cameras VALUES (?,?,?,?,?,?)').run(c.id, c.name, c.area, JSON.stringify(c.requiredGear), c.confirmFrames, i));
+    DEMO.cameras.forEach((c, i) => insertCamera(conn, c, i));
     DEMO.zones.forEach((z) => conn.prepare('INSERT INTO zones VALUES (?,?,?,?)').run(z.id, z.cameraId, z.name, JSON.stringify(z.points)));
     DEMO.videos.forEach((v) => conn.prepare(
       `INSERT INTO videos (id, camera_id, file_name, src, poster, sprite, recorded_at, duration_s, fps, status, progress, tracks, gear, credit, created_at)
@@ -103,7 +107,7 @@ const str = (v: Row[string]) => (v === null ? undefined : String(v));
 
 const toCamera = (r: Row): Camera => ({
   id: String(r.id), name: String(r.name), area: String(r.area),
-  requiredGear: JSON.parse(String(r.required_gear)) as Gear[], confirmFrames: Number(r.confirm_frames),
+  requiredGear: JSON.parse(String(r.required_gear)) as Gear[], confirmFrames: Number(r.confirm_frames), streamUrl: String(r.stream_url ?? ''),
 });
 const toZone = (r: Row): Zone => ({ id: String(r.id), cameraId: String(r.camera_id), name: String(r.name), points: JSON.parse(String(r.points)) as Point[] });
 const toVideo = (r: Row): Video => ({
@@ -143,6 +147,11 @@ function refreshEvents(conn: DatabaseSync, scope: { cameraId?: string; videoId?:
 }
 
 /* ---------- reads ---------- */
+/** How many events a video has; live clips without any are not kept. */
+export function countEvents(videoId: string): number {
+  return (db().prepare('SELECT COUNT(*) AS n FROM events WHERE video_id = ?').get(videoId) as { n: number }).n;
+}
+
 export function listEvents(): DetectedEvent[] {
   return (db().prepare('SELECT * FROM events ORDER BY video_id, t').all() as Row[]).map(toEvent);
 }
@@ -178,14 +187,19 @@ export function createCamera(): Camera {
   let n = 20;
   while (ids.has(`CAM ${n}`)) n++;
   const { sort } = conn.prepare('SELECT COALESCE(MAX(sort), -1) + 1 AS sort FROM cameras').get() as { sort: number };
-  const cam: Camera = { id: `CAM ${n}`, name: `New camera ${ids.size + 1}`, area: '', requiredGear: [], confirmFrames: 12 };
-  conn.prepare('INSERT INTO cameras VALUES (?,?,?,?,?,?)').run(cam.id, cam.name, cam.area, '[]', cam.confirmFrames, sort);
+  const cam: Camera = { id: `CAM ${n}`, name: `New camera ${ids.size + 1}`, area: '', requiredGear: [], confirmFrames: 12, streamUrl: '' };
+  insertCamera(conn, cam, sort);
   return cam;
 }
 
+function insertCamera(conn: DatabaseSync, c: Camera, sort: number): void {
+  conn.prepare('INSERT INTO cameras (id, name, area, required_gear, confirm_frames, sort, stream_url) VALUES (?,?,?,?,?,?,?)')
+    .run(c.id, c.name, c.area, JSON.stringify(c.requiredGear), c.confirmFrames, sort, c.streamUrl);
+}
+
 export function updateCamera(c: Camera): Camera | undefined {
-  const res = db().prepare('UPDATE cameras SET name = ?, area = ?, required_gear = ?, confirm_frames = ? WHERE id = ?')
-    .run(c.name, c.area, JSON.stringify(c.requiredGear), c.confirmFrames, c.id);
+  const res = db().prepare('UPDATE cameras SET name = ?, area = ?, required_gear = ?, confirm_frames = ?, stream_url = ? WHERE id = ?')
+    .run(c.name, c.area, JSON.stringify(c.requiredGear), c.confirmFrames, c.streamUrl, c.id);
   if (!res.changes) return undefined;
   refreshEvents(db(), { cameraId: c.id });
   return c;

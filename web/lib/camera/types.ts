@@ -17,6 +17,8 @@ export interface Camera {
   requiredGear: Gear[];
   /** Source frames a finding must last before it becomes an event (filters one-frame glitches). */
   confirmFrames: number;
+  /** Live stream address (rtsp://…, http://… or a webcam number); empty when the camera is not connected. */
+  streamUrl: string;
 }
 
 export interface Zone { id: string; cameraId: string; name: string; points: Point[] }
@@ -74,3 +76,15 @@ export interface CameraEvent {
 
 /** An event as the server stores it; the review decision is kept separately so re-running the rules keeps it. */
 export type DetectedEvent = Omit<CameraEvent, 'review'>;
+
+/** What the Live view shows about one camera. `off` means the vision service is not analysing it. */
+export interface LiveStatus {
+  state: 'off' | 'connecting' | 'live' | 'error' | 'stopped';
+  error: string | null;
+  /** People in view right now. */
+  people: number;
+  /** Frames actually analysed per second over the last clip. */
+  fps: number;
+  clipsSent: number;
+  lastClipAt: string | null;
+}

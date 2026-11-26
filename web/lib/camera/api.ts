@@ -1,5 +1,5 @@
 /* Browser-side client for the camera API (app/api). Every call throws an Error with a readable message on failure. */
-import type { Camera, DetectedEvent, Point, Review, Video, Zone } from './types';
+import type { Camera, DetectedEvent, LiveStatus, Point, Review, Video, Zone } from './types';
 
 export interface CameraData {
   cameras: Camera[]; zones: Zone[]; videos: Video[]; reviews: Record<string, Review>;
@@ -53,4 +53,8 @@ export const cameraApi = {
     return call<Video>('/api/videos', { method: 'POST', body: form });
   },
   status: (id: string) => call<Video>(`/api/videos/${at(id)}/status`),
+  testStream: (url: string) => call<{ width: number; height: number }>('/api/streams/test', json('POST', { url })),
+  liveStatus: (cameraId: string) => call<LiveStatus>(`/api/cameras/${at(cameraId)}/live`),
+  /** Address of the live picture, for an <img>. */
+  liveFeedUrl: (cameraId: string) => `/api/cameras/${at(cameraId)}/live/feed`,
 };

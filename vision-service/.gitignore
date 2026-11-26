@@ -3,3 +3,4 @@ __pycache__/
 *.pt
 runs/
 models/
+streams.json

@@ -1,20 +1,26 @@
-"""HSE vision service: runs person and safety-gear detection and tracking on uploaded videos for the web app.
+"""HSE vision service: runs person and safety-gear detection and tracking for the web app, on uploaded videos
+(/jobs) and on live camera streams (/streams).
 
 Run:  uvicorn app:app --host 127.0.0.1 --port 8001
-The web app (web/lib/server/analysis.ts) starts jobs here and polls their progress.
+The web app (web/lib/server/analysis.ts and live.ts) starts jobs and streams here and reads their progress.
 """
 from __future__ import annotations
 
 import logging
+import os
 import queue
+import re
 import threading
+import time
 import urllib.request
 from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+import live
 import pipeline
 
 log = logging.getLogger("vision")
@@ -116,3 +122,68 @@ def status(video_id: str) -> JobOut:
     if job is None:
         raise HTTPException(404, "No such job. The service may have restarted.")
     return job
+
+
+# ---------- live streams ----------
+CAMERA_ID = r"^[A-Za-z0-9 _-]{1,40}$"
+streams = live.Streams(Path(os.environ.get("VISION_STREAMS_FILE", Path(__file__).parent / "streams.json")))
+streams.resume()
+
+
+class StreamIn(BaseModel):
+    url: str = Field(pattern=live.URL_PATTERN.pattern, max_length=500)
+    out_root: str
+    callback_url: str = Field(pattern=r"^https?://")
+    sprite: SpriteIn
+
+
+class TestIn(BaseModel):
+    url: str = Field(max_length=500)
+
+
+@app.post("/streams/test")
+def test_stream(body: TestIn) -> dict:
+    try:
+        return live.test(body.url)
+    except live.StreamError as err:
+        raise HTTPException(400, str(err)) from None
+
+
+@app.put("/streams/{camera_id}")
+def put_stream(camera_id: str, body: StreamIn) -> dict:
+    if not re.match(CAMERA_ID, camera_id):
+        raise HTTPException(400, "Unsupported camera id.")
+    streams.put(live.StreamConfig(camera_id=camera_id, url=body.url, out_root=body.out_root,
+                                  callback_url=body.callback_url, sprite=body.sprite.model_dump()))
+    return {"ok": True}
+
+
+@app.delete("/streams/{camera_id}", status_code=204)
+def delete_stream(camera_id: str) -> None:
+    streams.delete(camera_id)
+
+
+@app.get("/streams/{camera_id}")
+def stream_status(camera_id: str) -> dict:
+    stream = streams.get(camera_id)
+    if stream is None:
+        raise HTTPException(404, "Live analysis is not running for this camera.")
+    return stream.status.__dict__
+
+
+@app.get("/streams/{camera_id}/live.mjpg")
+def live_view(camera_id: str) -> StreamingResponse:
+    stream = streams.get(camera_id)
+    if stream is None:
+        raise HTTPException(404, "Live analysis is not running for this camera.")
+
+    def frames():
+        last = None
+        while streams.get(camera_id) is stream and stream.status.state != "stopped":
+            jpg = stream.latest_jpeg
+            if jpg is not None and jpg is not last:
+                last = jpg
+                yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + jpg + b"\r\n"
+            time.sleep(1 / live.LIVE_FPS)
+
+    return StreamingResponse(frames(), media_type="multipart/x-mixed-replace; boundary=frame")

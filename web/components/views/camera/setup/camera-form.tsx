@@ -8,6 +8,7 @@ import { useCamera } from '../../../camera/state';
 import { useConfirm } from '../../../confirm';
 import { btn, Card, cx, Icon, meta, segBtn, segWrap } from '../../../ui';
 import { field, fieldLabel } from './fields';
+import { StreamField } from './stream-field';
 
 
 /** Name, area and rules for the selected camera. Keyed by camera id, so the draft resets when the camera changes. */
@@ -23,7 +24,7 @@ export function CameraForm({ camera }: { camera: Camera }) {
   const submit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
-    const ok = await saveCamera({ ...draft, name: draft.name.trim() || camera.name, area: draft.area.trim() });
+    const ok = await saveCamera({ ...draft, name: draft.name.trim() || camera.name, area: draft.area.trim(), streamUrl: draft.streamUrl.trim() });
     setSaving(false);
     if (ok) setSaved(true);
   };
@@ -39,6 +40,7 @@ export function CameraForm({ camera }: { camera: Camera }) {
           <span className={fieldLabel}>Area</span>
           <input className={field} value={draft.area} placeholder="For example Zone 4 · packing" onChange={(e) => edit({ area: e.target.value })} />
         </label>
+        <StreamField value={draft.streamUrl} onChange={(streamUrl) => edit({ streamUrl })} />
 
         <fieldset className="flex flex-col gap-1.5">
           <legend className={cx(fieldLabel, 'mb-1.5')}>Safety gear everyone must wear</legend>

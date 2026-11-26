@@ -11,10 +11,10 @@ import { GEARS } from './labels';
 import type { Camera, GearCheck, Gear, Tracks, Video, Zone } from './types';
 
 const cameras: Camera[] = [
-  { id: 'CAM 09', name: 'Dock 1 aisle', area: 'Dock 1 · storage', requiredGear: ['helmet'], confirmFrames: 12 },
-  { id: 'CAM 18', name: 'Assembly bench', area: 'Line 2 · assembly', requiredGear: ['gloves', 'mask'], confirmFrames: 12 },
-  { id: 'CAM 05', name: 'Stitching line', area: 'Zone 4 · stitching', requiredGear: ['hairnet'], confirmFrames: 12 },
-  { id: 'CAM 16', name: 'Compressor room', area: 'Utilities', requiredGear: ['helmet', 'gloves'], confirmFrames: 12 },
+  { id: 'CAM 09', name: 'Dock 1 aisle', area: 'Dock 1 · storage', requiredGear: ['helmet'], confirmFrames: 12, streamUrl: '' },
+  { id: 'CAM 18', name: 'Assembly bench', area: 'Line 2 · assembly', requiredGear: ['gloves', 'mask'], confirmFrames: 12, streamUrl: '' },
+  { id: 'CAM 05', name: 'Stitching line', area: 'Zone 4 · stitching', requiredGear: ['hairnet'], confirmFrames: 12, streamUrl: '' },
+  { id: 'CAM 16', name: 'Compressor room', area: 'Utilities', requiredGear: ['helmet', 'gloves'], confirmFrames: 12, streamUrl: '' },
 ];
 
 const zones: Zone[] = [

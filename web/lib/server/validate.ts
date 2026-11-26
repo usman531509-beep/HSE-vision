@@ -1,5 +1,5 @@
 /* Checks request bodies before they reach the database. Each parser returns the clean value or an error message. */
-import { CONFIRM_OPTIONS, ZONE_LIMITS } from '../camera/constants';
+import { CONFIRM_OPTIONS, STREAM, ZONE_LIMITS } from '../camera/constants';
 import { FRAME } from '../camera/geometry';
 import { GEARS } from '../camera/labels';
 import type { Camera, Gear, Point, Review } from '../camera/types';
@@ -18,7 +18,16 @@ export function parseCamera(id: string, body: unknown): Parsed<Camera> {
   if (!gear || !gear.every((g): g is Gear => GEARS.includes(g as Gear))) return fail(`Gear must be a list of: ${GEARS.join(', ')}.`);
   const confirmFrames = Number(body.confirmFrames);
   if (!CONFIRM_OPTIONS.some(([f]) => f === confirmFrames)) return fail('Unsupported confirmation time.');
-  return { ok: true, value: { id, name, area, requiredGear: [...new Set(gear)], confirmFrames } };
+  const stream = parseStreamUrl(body.streamUrl ?? '');
+  if (!stream.ok) return stream;
+  return { ok: true, value: { id, name, area, requiredGear: [...new Set(gear)], confirmFrames, streamUrl: stream.value } };
+}
+
+/** A live stream address, or empty for "not connected". */
+export function parseStreamUrl(raw: unknown): Parsed<string> {
+  const url = typeof raw === 'string' ? raw.trim() : '';
+  if (!url) return { ok: true, value: '' };
+  return url.length <= STREAM.maxLength && STREAM.pattern.test(url) ? { ok: true, value: url } : fail(STREAM.problem);
 }
 
 export function parseZoneName(body: unknown): Parsed<string> {

@@ -13,6 +13,7 @@ Last updated: 2026-11-26.
 | Upload and analysis | Upload → convert → detect people → track (YOLO11 + ByteTrack) → rules → events | `vision-service/` |
 | Safety gear | Helmet, vest, gloves and mask checked on uploads (safetyvision-yolov8 v2, ONNX). Hairnet cannot be checked | `vision-service/ppe.py` |
 | Server-side rules | Events are created and stored on the server when analysis ends (the vision service calls the app back) and rebuilt when a camera, area or gear rule changes. Review decisions are kept across rebuilds | `web/lib/server/camera-db.ts`, `/api/events` |
+| Live cameras (prototype) | Stream address and Test connection in Camera setup; live picture with person boxes on Cameras → Live; 30-second clips with events kept as evidence and reviewed like uploads; streams resume after a restart. Tested with a simulated camera, not yet with real CCTV | `vision-service/live.py`, `web/lib/server/live.ts` |
 | Spill (explored) | Zero-shot test with YOLO-World: no false alarms, but missed clear water and only weakly found a wet floor. Not usable | see Spill detection below |
 
 ## Known limits of the gear model (tested on the sample clips)
@@ -46,14 +47,14 @@ customers would require publishing its full source code. Options:
 | B. Switch to Apache/MIT models (RF-DETR or YOLOX, ByteTrack) and retrain the gear model | Free | About 1–2 weeks |
 | C. Open-source the product under AGPL | Free | Only if the company agrees |
 
-### 4. Live camera streams
-- Each camera gets a stream address (`rtsp://…`) and a "Test connection" button in Camera setup.
-- The vision service runs continuously on a PC inside the factory network (CPU for 1–2 cameras, NVIDIA GPU for more),
-  reads about 5 frames a second, and saves a short evidence clip and snapshot per event.
-- Browser live view through a relay such as MediaMTX (RTSP → WebRTC/HLS).
-- Needs from the site: stream addresses and credentials, a PC on the camera network, storage and a retention rule.
-- Local prototype first: laptop webcam, a phone as an IP camera ("IP Webcam" app), or a sample clip replayed as RTSP
-  with MediaMTX + ffmpeg. Estimated 2–3 days.
+### 4. Live cameras on site — prototype built, needs the site
+The prototype works end to end with a simulated camera (see vision-service/README.md, "Live cameras"). Still needed:
+- From the site: camera stream addresses and passwords, and a PC on the camera network to run the vision service.
+- A test with a real CCTV camera or a phone camera app (only a simulated camera has been tested).
+- An NVIDIA GPU for more than one or two cameras: a laptop CPU manages about 2–3 frames a second for one camera.
+- A retention rule for evidence clips (how long to keep them) and a disk-space limit.
+- Camera passwords are stored in the database and the service's streams.json in plain text; protect both, or move
+  them to a secrets store before going live.
 
 ### 5. Alerts
 Events now exist on the server, so an alert (email, SMS, WhatsApp) can be sent when one is created. Not started.

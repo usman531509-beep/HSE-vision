@@ -33,6 +33,8 @@ interface CameraApi extends CameraData, Selection {
   deleteZone: (id: string) => Promise<boolean>;
   deleteVideo: (id: string) => Promise<boolean>;
   upload: (cameraId: string, file: File) => Promise<void>;
+  /** Re-reads everything from the server, e.g. after a live clip arrived. Keeps the current selection. */
+  reload: () => void;
 }
 
 const Ctx = createContext<CameraApi | null>(null);
@@ -101,7 +103,7 @@ export function CameraProvider({ children }: { children: ReactNode }) {
       return data.readOnly;
     };
     return {
-      ...data, ...sel, events, sightings, camera,
+      ...data, ...sel, events, sightings, camera, reload: load,
       video: data.videos.find((v) => v.id === sel.videoId) ?? null,
       selectCamera: (id) => setSel({ camId: id, videoId: firstVideoOf(data.videos, id), eventId: null }),
       selectVideo: (id) => setSel((s) => ({ ...s, videoId: id, eventId: null })),
@@ -179,7 +181,7 @@ export function CameraProvider({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [data, sel, events, sightings, patchData, putVideo, reloadEvents, fail]);
+  }, [data, sel, events, sightings, load, patchData, putVideo, reloadEvents, fail]);
 
   if (!api) return <LoadPanel error={loadError ?? (data && !data.cameras.length ? 'No cameras are set up yet.' : null)} onRetry={load} />;
   return (
