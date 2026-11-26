@@ -3,7 +3,7 @@
    - LLM analysis: the only part the local LLM writes; validated before use.
    - RcaOutput: what the Decision stage (predictive risk engine) consumes. */
 import { z } from 'zod';
-import { CONFIDENCE, FISHBONE_CATEGORIES, INCIDENT_KINDS, RCA_SCHEMA_VERSION, WHY_CHAIN } from './config';
+import { CONFIDENCE, FISHBONE_CATEGORIES, INCIDENT_KINDS, RCA_SCHEMA_VERSION } from './config';
 
 const text = z.string().trim().min(1);
 const timestamp = z.iso.datetime({ offset: true });
@@ -75,7 +75,7 @@ export const VerificationSchema = z.object({
 });
 export type Verification = z.infer<typeof VerificationSchema>;
 
-/* ---------- LLM analysis (the only part the LLM writes) ---------- */
+/* ---------- LLM analysis (the only part the LLM writes; levels 2 and 3 only) ---------- */
 
 const fishboneShape = Object.fromEntries(FISHBONE_CATEGORIES.map((c) => [c, z.array(text)])) as Record<(typeof FISHBONE_CATEGORIES)[number], z.ZodArray<typeof text>>;
 export const FishboneSchema = z
@@ -84,72 +84,73 @@ export const FishboneSchema = z
   .refine((f) => Object.values(f).some((causes) => causes.length > 0), { message: 'Fishbone needs at least one contributing cause' });
 export type Fishbone = z.infer<typeof FishboneSchema>;
 
-export const SecondaryRiskSchema = z.object({ risk: text, likelihood: z.enum(['low', 'medium', 'high']) });
+/** Further harm: what else this incident or its root cause can cause (the forward-looking last step of the board). */
+export const FurtherHarmSchema = z.object({ harm: text, likelihood: z.enum(['low', 'medium', 'high']) }).strict();
 
-const analysisCommon = {
+const causeAnalysis = {
   fishbone: FishboneSchema,
   root_cause: text,
   confidence: z.number().min(0).max(1),
-  secondary_risks: z.array(SecondaryRiskSchema),
   next_checks: z.array(text).min(1),
 };
 
-/** Small incident: 5-Whys style chain, from the event to the root cause. */
-export const SmallAnalysisSchema = z.object({ ...analysisCommon, why_chain: z.array(text).min(WHY_CHAIN.min).max(WHY_CHAIN.max) }).strict();
-export type SmallAnalysis = z.infer<typeof SmallAnalysisSchema>;
+/** Level 2, medium: fishbone. Why did it happen? Check each cause category. */
+export const MediumAnalysisSchema = z.object(causeAnalysis).strict();
+export type MediumAnalysis = z.infer<typeof MediumAnalysisSchema>;
 
-/** Dangerous incident: board fields the LLM writes. root_cause and secondary_risks are copied in by code. */
+/** Level 3, dangerous: board chain plus fishbone. board.root_cause and board.further_harm are copied in by code. */
 export const DangerousAnalysisSchema = z
   .object({
-    ...analysisCommon,
-    board: z.object({ incident_occurred: text, why_it_happened: text, circumstances: z.array(text).min(1) }).strict(),
+    ...causeAnalysis,
+    board: z.object({ what_happened: text, why_it_happened: text }).strict(),
+    further_harm: z.array(FurtherHarmSchema).min(1),
   })
   .strict();
 export type DangerousAnalysis = z.infer<typeof DangerousAnalysisSchema>;
 
 /* ---------- Output (what Decision consumes) ---------- */
 
-export const BoardSchema = z.object({
-  incident_occurred: text,
-  why_it_happened: text,
-  root_cause: text,
-  circumstances: z.array(text).min(1),
-  secondary_risks: z.array(text),
-});
+/** The board chain, in order: what happened → why → root cause → what further harm it can cause. */
+export const BoardSchema = z
+  .object({ what_happened: text, why_it_happened: text, root_cause: text, further_harm: z.array(text).min(1) })
+  .strict();
+
+const outputBase = {
+  schema_version: z.literal(RCA_SCHEMA_VERSION),
+  incident_id: text,
+  generated_at: timestamp,
+  triage: z.object({ basis: text, rules_fired: z.array(text), provisional: z.boolean() }).strict(),
+  verified: z.object({ value: z.boolean(), status: VerificationSchema.shape.status, summary: text, evidence: z.array(EvidenceSchema) }).strict(),
+};
+
+/** Level 1, small: logged with a note of what happened. No cause analysis and no LLM call. */
+const LogOutputSchema = z
+  .object({ ...outputBase, severity: z.literal('small'), level: z.literal(1), method: z.literal('log'), model: z.null(), note: text })
+  .strict();
+
+const FishboneOutputSchema = z
+  .object({ ...outputBase, severity: z.literal('medium'), level: z.literal(2), method: z.literal('fishbone'), model: text, ...causeAnalysis })
+  .strict();
+
+const BoardOutputSchema = z
+  .object({
+    ...outputBase, severity: z.literal('dangerous'), level: z.literal(3), method: z.literal('board'), model: text, ...causeAnalysis,
+    board: BoardSchema, further_harm: z.array(FurtherHarmSchema).min(1),
+  })
+  .strict();
 
 export const RcaOutputSchema = z
-  .object({
-    schema_version: z.literal(RCA_SCHEMA_VERSION),
-    incident_id: text,
-    generated_at: timestamp,
-    model: text,
-    severity: z.enum(['small', 'dangerous']),
-    triage: z.object({ rules_fired: z.array(text), provisional: z.boolean() }),
-    verified: z.object({ value: z.boolean(), status: VerificationSchema.shape.status, summary: text, evidence: z.array(EvidenceSchema) }),
-    method: z.enum(['5_whys', 'board']),
-    why_chain: z.array(text).min(WHY_CHAIN.min).max(WHY_CHAIN.max).optional(),
-    board: BoardSchema.optional(),
-    fishbone: FishboneSchema,
-    root_cause: text,
-    confidence: z.number().min(0).max(1),
-    secondary_risks: z.array(SecondaryRiskSchema),
-    next_checks: z.array(text).min(1),
-  })
-  .strict()
+  .discriminatedUnion('method', [LogOutputSchema, FishboneOutputSchema, BoardOutputSchema])
   .superRefine((o, ctx) => {
     const issue = (path: string, message: string): void => ctx.addIssue({ code: 'custom', path: [path], message });
-    if (o.severity === 'small') {
-      if (o.method !== '5_whys') issue('method', 'A small incident uses the 5_whys method');
-      if (!o.why_chain) issue('why_chain', 'A small incident needs a why_chain');
-      if (o.board) issue('board', 'A small incident has no board');
-    } else {
-      if (o.method !== 'board') issue('method', 'A dangerous incident uses the board method');
-      if (!o.board) issue('board', 'A dangerous incident needs a board');
-      if (o.why_chain) issue('why_chain', 'A dangerous incident has no why_chain');
-      if (o.board && o.board.root_cause !== o.root_cause) issue('board', 'board.root_cause must match root_cause');
-    }
-    if (!o.verified.value && o.confidence > CONFIDENCE.unverifiedCap)
-      issue('confidence', `Confidence above ${CONFIDENCE.unverifiedCap} needs sensor confirmation`);
     if (o.verified.value !== (o.verified.status === 'confirmed')) issue('verified', 'verified.value must be true exactly when status is confirmed');
+    if (o.method !== 'log' && !o.verified.value && o.confidence > CONFIDENCE.unverifiedCap)
+      issue('confidence', `Confidence above ${CONFIDENCE.unverifiedCap} needs sensor confirmation`);
+    if (o.method === 'board') {
+      if (o.board.root_cause !== o.root_cause) issue('board', 'board.root_cause must match root_cause');
+      const harms = o.further_harm.map((h) => h.harm);
+      if (harms.length !== o.board.further_harm.length || harms.some((h, i) => h !== o.board.further_harm[i]))
+        issue('board', 'board.further_harm must list the further_harm entries in order');
+    }
   });
 export type RcaOutput = z.infer<typeof RcaOutputSchema>;

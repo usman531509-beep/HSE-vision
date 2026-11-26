@@ -6,16 +6,15 @@ import { loadMockCase } from './load';
 import { RcaOutputSchema } from './schema';
 
 const fishbone = { Man: [], Machine: ['Seal worn'], Method: [], Material: [], Measurement: [], Environment: [] };
-const common = { fishbone, root_cause: 'No seal inspection schedule', confidence: 0.8, secondary_risks: [{ risk: 'Fire', likelihood: 'high' }], next_checks: ['Pressure-test the line'] };
-const SMALL = { ...common, why_chain: ['a', 'b', 'c'] };
-const DANGEROUS = { ...common, board: { incident_occurred: 'Leak', why_it_happened: 'Seal failed', circumstances: ['Gas builds up'] } };
+const MEDIUM = { fishbone, root_cause: 'No seal inspection schedule', confidence: 0.8, next_checks: ['Pressure-test the line'] };
+const DANGEROUS = { ...MEDIUM, board: { what_happened: 'Leak', why_it_happened: 'Seal failed' }, further_harm: [{ harm: 'Fire', likelihood: 'high' }] };
 
 /** A local LLM server that answers the method the prompt asks for. */
-function llmServer(reply?: (method: 'small' | 'dangerous') => unknown) {
+function llmServer(reply?: (method: 'medium' | 'dangerous') => unknown) {
   return vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
     const { messages } = JSON.parse(String(init?.body)) as { messages: { content: string }[] };
-    const method = messages[1].content.startsWith('Method: 5 Whys') ? 'small' : 'dangerous';
-    const content = reply ? reply(method) : method === 'small' ? SMALL : DANGEROUS;
+    const method = messages[1].content.startsWith('Method: fishbone') ? 'medium' : 'dangerous';
+    const content = reply ? reply(method) : method === 'medium' ? MEDIUM : DANGEROUS;
     return Response.json({ choices: [{ message: { content: typeof content === 'string' ? content : JSON.stringify(content) } }] });
   });
 }
@@ -35,11 +34,10 @@ afterEach(() => {
 
 describe('POST /api/reasoning/rca: success', () => {
   it.each([
+    ['heat-stress', 'medium'],
     ['gas-leak-confirmed', 'dangerous'],
-    ['gas-leak-false-alarm', 'small'],
-    ['heat-stress', 'small'],
     ['boiler-overpressure', 'dangerous'],
-  ])('runs mock %s and returns a valid %s RCA', async (mock, severity) => {
+  ])('runs mock %s and returns a valid %s RCA from the local LLM', async (mock, severity) => {
     const server = llmServer();
     vi.stubGlobal('fetch', server);
     const res = await post({ mock });
@@ -48,6 +46,17 @@ describe('POST /api/reasoning/rca: success', () => {
     expect(RcaOutputSchema.safeParse(body).success).toBe(true);
     expect(body).toMatchObject({ severity, model: 'test-model' });
     expect(String(server.mock.calls[0][0])).toBe('http://127.0.0.1:11434/v1/chat/completions');
+  });
+
+  it('logs a small incident (level 1) without contacting the LLM', async () => {
+    const server = llmServer();
+    vi.stubGlobal('fetch', server);
+    const res = await post({ mock: 'gas-leak-false-alarm' });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(RcaOutputSchema.safeParse(body).success).toBe(true);
+    expect(body).toMatchObject({ severity: 'small', level: 1, method: 'log', model: null });
+    expect(server).not.toHaveBeenCalled();
   });
 
   it('accepts an RcaInput body directly', async () => {
@@ -109,12 +118,12 @@ describe('POST /api/reasoning/rca: errors', () => {
   });
 
   it('422 with the validation issues when the LLM answer is invalid twice', async () => {
-    const server = llmServer(() => ({ why_chain: ['only one'] }));
+    const server = llmServer(() => ({ root_cause: 'only this' }));
     vi.stubGlobal('fetch', server);
     const res = await post({ mock: 'heat-stress' });
     expect(res.status).toBe(422);
     const body = await res.json();
-    expect(body.issues.join('\n')).toMatch(/why_chain/);
+    expect(body.issues.join('\n')).toMatch(/fishbone/);
     expect(server).toHaveBeenCalledTimes(2);
   });
 
