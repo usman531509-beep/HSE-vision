@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { EVENT, GEAR_LABEL, REVIEW } from '@/lib/camera/labels';
 import { fmtTime } from '@/lib/camera/geometry';
-import type { CameraEvent, EventType, Review, Video } from '@/lib/camera/types';
+import type { Camera, CameraEvent, EventType, Review, Video } from '@/lib/camera/types';
 import { useCamera } from '../../camera/state';
 import { btn, Card, Chip, cx, Filters, KV, link, meta, rowBase, rowBtn } from '../../ui';
 import { Evidence } from './evidence';
@@ -16,14 +16,23 @@ const FILTERS: [Filter, string][] = [
 
 const matches = (e: CameraEvent, f: Filter): boolean => f === 'all' || (f === 'review' ? e.review === 'needs_review' : e.type === f);
 
+/** Why some of the camera's gear rules could not be applied to this video, or null when all were. */
+function gearGap(video: Video | null, camera: Camera): string | null {
+  if (!video || video.status !== 'completed' || !camera.requiredGear.length) return null;
+  if (!video.gear) return 'This video was analysed before safety-gear checks were added. Upload it again to check gear.';
+  if (!video.gear.checked.length) return 'Safety gear was not checked because the gear model was not available on the analysis server.';
+  const unchecked = camera.requiredGear.filter((g) => !video.gear?.checked.includes(g)).map((g) => GEAR_LABEL[g]);
+  if (!unchecked.length) return null;
+  return `${unchecked.join(' and ')} cannot be checked by the gear model yet, so ${unchecked.length === 1 ? 'that rule is' : 'those rules are'} skipped for this video.`;
+}
+
 export function EventsCard() {
-  const { video, camera, events, sightings, eventId, selectEvent } = useCamera();
+  const { video, camera, events, eventId, selectEvent } = useCamera();
   const [filter, setFilter] = useState<Filter>('all');
   const vEvents = video ? events.filter((e) => e.videoId === video.id) : [];
   const shown = vEvents.filter((e) => matches(e, filter));
   const open = vEvents.filter((e) => e.review === 'needs_review').length;
-  // Gear results exist only for the sample clips until a PPE model is connected.
-  const gearPending = !!video && video.status === 'completed' && camera.requiredGear.length > 0 && !sightings.some((s) => s.videoId === video.id);
+  const gap = gearGap(video, camera);
 
   return (
     <Card
@@ -32,7 +41,7 @@ export function EventsCard() {
       sub={video?.status === 'completed' ? `${vEvents.length} ${vEvents.length === 1 ? 'event' : 'events'} · ${open} to review` : 'Waiting for analysis'}
     >
       {vEvents.length ? <Filters label="Show events" options={FILTERS} value={filter} onChange={setFilter} /> : null}
-      {gearPending ? <p className={meta}>Safety-gear checks for uploaded videos start once the PPE model is connected. People and restricted areas are checked now.</p> : null}
+      {gap ? <p className={meta}>{gap}</p> : null}
       <Body video={video} total={vEvents.length} shown={shown} eventId={eventId} onPick={(id) => selectEvent(id === eventId ? null : id)} />
     </Card>
   );

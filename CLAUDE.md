@@ -44,3 +44,4 @@ Add dated, one-line learnings below (gotchas, decisions, "don't do X because Y")
 - 2026-11-26 · Camera module data lives in SQLite (`node:sqlite`, Node ≥ 22.13) at `web/data/`, git-ignored and seeded with sample clips on first run. On Vercel (read-only disk) it runs as a read-only preview from memory; set `CAMERA_STORAGE=local` on a server with a disk to save.
 - 2026-11-26 · With `cacheComponents` on, GET route handlers that read SQLite must call `await connection()` first, or they are prerendered at build. API handlers are wrapped by `web/lib/server/route.ts`, which calls `unstable_rethrow` so Next's own signals pass through.
 - 2026-11-26 · `error.tsx` in this Next version receives `retry`, not `reset`.
+- 2026-11-26 · Load third-party model weights as ONNX, not `.pt`: a `.pt` file is a pickle and can run code. Pin the download to a revision and check its SHA-256 (see `vision-service/ppe.py`).

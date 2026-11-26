@@ -1,7 +1,8 @@
-"""Pipeline steps 1-4 for one uploaded video: normalise the clip, count frames, detect people, track them.
+"""Pipeline steps 1-4 for one uploaded video: normalise the clip, count frames, detect people and their
+safety gear, track them.
 
 Writes into out_dir:  video.mp4 (1280x720, H.264, 25 fps)  poster.jpg  sprite.jpg
-Returns the tracks the web app's rules engine turns into events.
+Returns the tracks and gear verdicts the web app's rules engine turns into events.
 """
 from __future__ import annotations
 
@@ -17,6 +18,8 @@ from threading import Lock
 from typing import Callable
 
 import cv2
+
+import ppe
 
 FRAME_W, FRAME_H, FPS = 1280, 720, 25
 KEEP_EVERY = 2          # store every 2nd frame; the web player blends between samples
@@ -48,19 +51,26 @@ class Progress:
         self.on_change(self)
 
 
-_model = None
+_models: dict = {}
 _model_lock = Lock()
 
 
 def _yolo():
-    """Load the detector once; it is reused for every job."""
-    global _model
+    """Load the person detector once; it is reused for every job."""
     with _model_lock:
-        if _model is None:
+        if "person" not in _models:
             from ultralytics import YOLO  # imported late so the API starts fast
 
-            _model = YOLO(MODEL)
-        return _model
+            _models["person"] = YOLO(MODEL)
+        return _models["person"]
+
+
+def _gear_model():
+    """The safety-gear detector, or None when it is unavailable. A failed load is retried on the next job."""
+    with _model_lock:
+        if _models.get("gear") is None:
+            _models["gear"] = ppe.load()
+        return _models["gear"]
 
 
 def _ffmpeg(*args: str) -> None:
@@ -111,8 +121,11 @@ def count_frames(video: Path) -> int:
     return n
 
 
-def detect_and_track(video: Path, total_frames: int, progress: Progress) -> list:
-    """Steps 3-4: person boxes per frame with ByteTrack IDs. Returns [[seconds, [[id, x, y, w, h, conf], ...]], ...]."""
+def detect_and_track(video: Path, total_frames: int, progress: Progress, gear: ppe.GearVotes | None) -> list:
+    """Steps 3-4: person boxes per frame with ByteTrack IDs, plus gear finds on those people.
+    Returns [[seconds, [[id, x, y, w, h, conf], ...]], ...]."""
+    # Gear is checked on kept frames only, so the boxes it is matched against are the stored ones.
+    assert ppe.EVERY % KEEP_EVERY == 0
     results = _yolo().track(source=str(video), classes=[0], conf=0.35, iou=0.5, tracker="bytetrack.yaml",
                             stream=True, verbose=False, persist=False)
     raw = []
@@ -126,12 +139,15 @@ def detect_and_track(video: Path, total_frames: int, progress: Progress) -> list
         if r.boxes is not None and r.boxes.id is not None:
             for (x1, y1, x2, y2), tid, c in zip(r.boxes.xyxy.tolist(), r.boxes.id.int().tolist(), r.boxes.conf.tolist()):
                 boxes.append([tid, round(x1), round(y1), round(x2 - x1), round(y2 - y1), round(c, 2)])
+        if gear and i % ppe.EVERY == 0:
+            gear.observe(r.orig_img, boxes)
         raw.append([round(i / FPS, 2), boxes])
     return raw
 
 
-def clean_tracks(raw: list) -> list:
-    """Drop flicker and weak tracks, then number people 1, 2, 3… in order of first appearance."""
+def clean_tracks(raw: list) -> tuple[list, dict[int, int]]:
+    """Drop flicker and weak tracks, then number people 1, 2, 3… in order of first appearance.
+    Returns the cleaned frames and the tracker-id -> person-number map."""
     confs: dict[int, list[float]] = defaultdict(list)
     for _, boxes in raw:
         for b in boxes:
@@ -143,7 +159,7 @@ def clean_tracks(raw: list) -> list:
             if b[0] in keep and b[0] not in order:
                 order.append(b[0])
     renumber = {old: n + 1 for n, old in enumerate(order)}
-    return [[t, sorted([renumber[b[0]], *b[1:]] for b in boxes if b[0] in renumber)] for t, boxes in raw]
+    return [[t, sorted([renumber[b[0]], *b[1:]] for b in boxes if b[0] in renumber)] for t, boxes in raw], renumber
 
 
 def run(source: Path, out: Path, sprite: Sprite, max_seconds: float, progress: Progress) -> dict:
@@ -152,10 +168,14 @@ def run(source: Path, out: Path, sprite: Sprite, max_seconds: float, progress: P
     progress.done(1)
     total = count_frames(out / "video.mp4")
     progress.done(2)
-    raw = detect_and_track(out / "video.mp4", total, progress)
+    gear_model = _gear_model()
+    votes = ppe.GearVotes(gear_model) if gear_model else None
+    raw = detect_and_track(out / "video.mp4", total, progress, votes)
     progress.done(3)
-    tracks = {"fps": FPS / KEEP_EVERY, "w": FRAME_W, "h": FRAME_H, "frames": clean_tracks(raw)}
-    result = {"duration_s": round(seconds, 2), "fps": FPS, "tracks": tracks}
+    frames, renumber = clean_tracks(raw)
+    tracks = {"fps": FPS / KEEP_EVERY, "w": FRAME_W, "h": FRAME_H, "frames": frames}
+    gear = {"checked": ppe.CHECKED, "sightings": votes.results(renumber)} if votes else {"checked": [], "sightings": []}
+    result = {"duration_s": round(seconds, 2), "fps": FPS, "tracks": tracks, "gear": gear}
     (out / "result.json").write_text(json.dumps(result, separators=(",", ":")), encoding="utf-8")
     progress.done(4)
     return result

@@ -31,7 +31,7 @@ function stepDetails(video: Video | null, gearRules: number, zoneCount: number, 
   return [
     video.status === 'failed' ? 'File could not be read' : video.durationS ? `${fmtTime(video.durationS)} · ${FRAME.w}×${FRAME.h} · ${video.fps} fps` : 'Reading file…',
     video.durationS ? `${Math.round(video.durationS * video.fps).toLocaleString()} frames · ${tracks ? tracks.fps : '–'} checked per second` : '–',
-    ready ? (tracks ? `${boxes.toLocaleString()} person boxes` : 'Model not connected yet') : '–',
+    ready ? (tracks ? `${boxes.toLocaleString()} person boxes · ${plural(video.gear?.sightings.length ?? 0, 'gear result')}` : 'No people found') : '–',
     ready ? (tracks ? `${people} ${people === 1 ? 'person' : 'people'} tracked` : '–') : '–',
     `${plural(zoneCount, 'restricted area')} · ${plural(gearRules, 'gear rule')}`,
     ready ? plural(events.length, 'event') : '–',

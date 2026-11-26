@@ -1,4 +1,4 @@
-"""HSE vision service: runs person detection and tracking on uploaded videos for the web app.
+"""HSE vision service: runs person and safety-gear detection and tracking on uploaded videos for the web app.
 
 Run:  uvicorn app:app --host 127.0.0.1 --port 8001
 The web app (web/lib/server/analysis.ts) starts jobs here and polls their progress.
@@ -79,7 +79,7 @@ threading.Thread(target=_worker, daemon=True, name="vision-worker").start()
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "model": pipeline.MODEL, "queued": work.qsize()}
+    return {"ok": True, "model": pipeline.MODEL, "gear_model": pipeline.ppe.MODEL_PATH.is_file(), "queued": work.qsize()}
 
 
 @app.post("/jobs", status_code=202)

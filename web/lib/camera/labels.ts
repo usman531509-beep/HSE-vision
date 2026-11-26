@@ -4,6 +4,8 @@ import type { EventType, Gear, Processing, Review } from './types';
 
 export const GEAR_LABEL: Record<Gear, string> = { helmet: 'Helmet', vest: 'Safety vest', gloves: 'Gloves', hairnet: 'Hairnet', mask: 'Face mask' };
 export const GEARS = Object.keys(GEAR_LABEL) as Gear[];
+/** Gear the vision service's model can see; keep in step with CLASSES in vision-service/ppe.py. */
+export const MODEL_GEAR: readonly Gear[] = ['helmet', 'vest', 'gloves', 'mask'];
 
 export const EVENT: Record<EventType, { label: string; short: string; tone: Tone }> = {
   restricted_zone_entry: { label: 'Restricted-area entry', short: 'Restricted area', tone: 'act' },

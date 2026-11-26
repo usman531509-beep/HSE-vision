@@ -1,8 +1,8 @@
 /* Talks to the Python vision service (vision-service/) and keeps the video rows in step with its jobs.
-   The service runs pipeline steps 1–4 (video, frames, detect, track); rules and events run in the app. */
+   The service runs pipeline steps 1–4 (video, frames, detect people and gear, track); rules and events run in the app. */
 import path from 'node:path';
 import { SERVICE_STEPS, SPRITE, UPLOAD } from '../camera/constants';
-import type { Tracks, Video } from '../camera/types';
+import type { GearCheck, Tracks, Video } from '../camera/types';
 import { getVideo, updateVideo, UPLOAD_DIR } from './camera-db';
 
 const SERVICE_URL = process.env.VISION_SERVICE_URL ?? 'http://127.0.0.1:8001';
@@ -14,7 +14,7 @@ interface JobStatus {
   /** Pipeline steps finished (0–4). */
   step: number;
   error?: string;
-  result?: { duration_s: number; fps: number; tracks: Tracks };
+  result?: { duration_s: number; fps: number; tracks: Tracks; gear: GearCheck };
 }
 
 export const uploadDir = (videoId: string) => path.join(UPLOAD_DIR, videoId);
@@ -62,6 +62,7 @@ export async function syncAnalysis(videoId: string): Promise<Video | undefined> 
     durationS: job.result.duration_s,
     fps: job.result.fps,
     tracks: job.result.tracks,
+    gear: job.result.gear,
     src: assetUrl(videoId, 'video'),
     poster: assetUrl(videoId, 'poster'),
     sprite: assetUrl(videoId, 'sprite'),
