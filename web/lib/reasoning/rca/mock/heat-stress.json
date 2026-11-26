@@ -1,0 +1,75 @@
+{
+  "incident": {
+    "id": "HEAT-001",
+    "kind": "heat_stress",
+    "occurred_at": "2026-11-25T18:20:00+05:00",
+    "location": {
+      "zone": "Zone 4 · Packing",
+      "asset": "Station 4B"
+    },
+    "title": "Packer dizzy at station 4B",
+    "description": "A packer at station 4B reported dizziness and nausea near the end of a 2-hour stint beside the preform outfeed. Given water and rest in the cool room; first aid only, back to light duties after 30 minutes.",
+    "source": "Form, line lead",
+    "reported_severity": "Medium",
+    "injury": "first_aid",
+    "people_exposed": 3
+  },
+  "sensors": [
+    {
+      "sensor_id": "WB-03",
+      "kind": "wbgt",
+      "unit": "°C WBGT",
+      "zone": "Zone 4 · Packing",
+      "readings": [
+        {
+          "t": "2026-11-25T18:00:00+05:00",
+          "v": 28.9
+        },
+        {
+          "t": "2026-11-25T18:02:00+05:00",
+          "v": 29.2
+        },
+        {
+          "t": "2026-11-25T18:04:00+05:00",
+          "v": 29.6
+        },
+        {
+          "t": "2026-11-25T18:06:00+05:00",
+          "v": 29.9
+        },
+        {
+          "t": "2026-11-25T18:08:00+05:00",
+          "v": 30.1
+        },
+        {
+          "t": "2026-11-25T18:10:00+05:00",
+          "v": 30.3
+        },
+        {
+          "t": "2026-11-25T18:12:00+05:00",
+          "v": 30.4
+        },
+        {
+          "t": "2026-11-25T18:14:00+05:00",
+          "v": 30.2
+        },
+        {
+          "t": "2026-11-25T18:16:00+05:00",
+          "v": 30.5
+        },
+        {
+          "t": "2026-11-25T18:18:00+05:00",
+          "v": 30.3
+        },
+        {
+          "t": "2026-11-25T18:20:00+05:00",
+          "v": 30.1
+        },
+        {
+          "t": "2026-11-25T18:22:00+05:00",
+          "v": 29.8
+        }
+      ]
+    }
+  ]
+}
