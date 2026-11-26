@@ -2,6 +2,11 @@
 
 /* Visual HSE — precision-instrument skin (flat, opaque, hairlines). See ../DESIGN.md.
    Tokens live in the Tailwind theme, so every colour is a utility: bg-paper, text-act-ink, border-line… */
+/* One gap for the page: window edges, sidebar to content, and between cards. Used as gap-(--gutter), px-(--gutter)… */
+:root {
+  --gutter: 0.75rem;
+}
+
 @theme {
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
 
@@ -49,6 +54,22 @@
   --radius-sm: 10px; /* small */
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* A word appearing where Shade's flying pixels land: a soft edge wipes it in left to right, behind the dots.
+     Delay and duration are set inline from the flight timing (agent/converge.ts). */
+  --animate-land: land 300ms linear both;
+  @keyframes land {
+    from {
+      mask-image: linear-gradient(90deg, #000 40%, transparent 60%);
+      mask-size: 250% 100%;
+      mask-position: 100% 0;
+    }
+    to {
+      mask-image: linear-gradient(90deg, #000 40%, transparent 60%);
+      mask-size: 250% 100%;
+      mask-position: 0 0;
+    }
+  }
 
   /* layout breakpoints from DESIGN.md (used as max-nav: / max-compact:) */
   --breakpoint-compact: 45rem; /* 720px: single column */

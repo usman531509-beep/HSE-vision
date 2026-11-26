@@ -19,19 +19,29 @@ export function forecastWbgt(hour: number): number {
 
 export const NOW_HOUR = NOW.day * 24 + NOW.hour + NOW.minute / 60;
 
-export interface WorkRest { min: number; label: string; short: string; tone: Tone }
+/** `work` is minutes of work per hour; the rest of the hour is rest in shade. */
+export interface WorkRest { min: number; label: string; short: string; work: number; tone: Tone }
 
 /** ACGIH TLV bands for moderate work by acclimatised workers. Lower bound in °C WBGT. */
 export const WORK_REST: WorkRest[] = [
-  { min: -Infinity, label: 'Continuous work', short: 'Normal', tone: 'low' },
-  { min: 28, label: '45 min work · 15 min rest', short: '45 / 15', tone: 'watch' },
-  { min: 29, label: '30 min work · 30 min rest', short: '30 / 30', tone: 'watch' },
-  { min: 30, label: '15 min work · 45 min rest', short: '15 / 45', tone: 'act' },
-  { min: 31, label: 'Stop non-essential work', short: 'Stop', tone: 'act' },
+  { min: -Infinity, label: 'Continuous work', short: 'Normal', work: 60, tone: 'low' },
+  { min: 28, label: '45 min work · 15 min rest', short: '45 / 15', work: 45, tone: 'watch' },
+  { min: 29, label: '30 min work · 30 min rest', short: '30 / 30', work: 30, tone: 'watch' },
+  { min: 30, label: '15 min work · 45 min rest', short: '15 / 45', work: 15, tone: 'act' },
+  { min: 31, label: 'Stop non-essential work', short: 'Stop', work: 0, tone: 'act' },
 ];
 
 export function workRest(wbgt: number): WorkRest {
   return [...WORK_REST].reverse().find((b) => wbgt >= b.min) ?? WORK_REST[0];
+}
+
+/** The next band up from a reading, or undefined above the last limit. */
+export const nextBand = (wbgt: number): WorkRest | undefined => WORK_REST.find((b) => b.min > wbgt);
+
+/** Hour index (0–47) of the day's hottest forecast WBGT. */
+export function peakHour(day: number): number {
+  const hours = Array.from({ length: 24 }, (_, h) => day * 24 + h);
+  return hours.reduce((m, h) => (forecastWbgt(h) > forecastWbgt(m) ? h : m));
 }
 
 export const fmtWbgt = (v: number): string => v.toFixed(1);

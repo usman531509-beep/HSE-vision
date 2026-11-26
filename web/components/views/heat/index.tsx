@@ -9,14 +9,15 @@ import { BigStat } from '../../figures';
 import { useSensorFeed } from '../../heat/use-sensor-feed';
 import { useHse } from '../../state';
 import { Chip, Foot, PageHead, Panel, segBtn, segWrap } from '../../ui';
-import { AskHeat, PilotMeasures } from './ask';
+import { HeatAgent } from './agent';
 import { Briefing } from './briefing';
 import { DataFlow } from './flow';
 import { HeatForecast } from './forecast';
+import { PilotMeasures } from './measures';
 import { RiskMap } from './risk-map';
-import { LiveSensors, WorkRestGuide } from './sensors';
+import { SensorBoard } from './widgets/board';
 
-const twoCols = 'grid grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] gap-4 max-nav:grid-cols-1';
+const twoCols = 'grid grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] gap-(--gutter) max-nav:grid-cols-1';
 
 export function HeatView() {
   const { s, set } = useHse();
@@ -54,20 +55,16 @@ export function HeatView() {
       />
       <Panel>
         <DataFlow feed={feed} grid={grid} advice={advice} />
+        <SensorBoard feed={feed} pending={pending} />
         <div className={twoCols}>
-          <LiveSensors feed={feed} />
-          <WorkRestGuide latest={feed.latest} />
+          <HeatForecast />
+          <PilotMeasures jobs={advice.length} />
         </div>
         <RiskMap grid={grid} />
-        {/* Briefing beside a stack of forecast + measures; the last card stretches so both columns end level. */}
         <div className={twoCols}>
           <Briefing advice={advice} grid={grid} />
-          <div className="flex flex-col gap-4">
-            <HeatForecast />
-            <PilotMeasures className="flex-1" />
-          </div>
+          <HeatAgent live={feed.latest} />
         </div>
-        <AskHeat live={feed.latest} />
         <Foot
           left="Pilot preview · sample data · simulated sensor gateway."
           right="A qualified person approves every schedule change."

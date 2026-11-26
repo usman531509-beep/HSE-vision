@@ -15,14 +15,14 @@ export function LogoMark({ className, dot = '#e4f47a' }: { className?: string; d
   );
 }
 
-/** Tile + wordmark, as used in the sidebar and the mobile top bar. */
-export function Logo() {
+/** Tile + wordmark, as used in the sidebar and the mobile top bar. `compact` keeps only the tile (collapsed sidebar). */
+export function Logo({ compact }: { compact?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2.5">
       <span className="grid size-9 place-items-center rounded-[9px] bg-ink text-paper [--logo-cut:#141414]">
         <LogoMark className="size-[26px]" />
       </span>
-      <span className="text-[17px] leading-none tracking-[-0.02em] text-ink">
+      <span className={compact ? 'sr-only' : 'text-[17px] leading-none tracking-[-0.02em] text-ink'}>
         <b className="font-bold">Visual</b> <span className="font-normal">HSE</span>
       </span>
     </span>

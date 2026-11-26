@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { site } from '@/lib/data';
+import type { Tone } from '@/lib/data';
 import { PAGES, pageForPath } from '@/lib/pages';
 import { useHse } from './state';
 import { Logo, LogoMark } from './logo';
@@ -38,6 +40,24 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (p) router.replace(p.href);
   }, [router]);
 
+  // The collapsed sidebar is a per-browser preference.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(NAV_KEY) === '1') set({ navCollapsed: true });
+    } catch (err) {
+      console.warn('[shell] could not read the sidebar preference:', err);
+    }
+  }, [set]);
+  const toggleNav = useCallback(() => {
+    const next = !s.navCollapsed;
+    set({ navCollapsed: next });
+    try {
+      localStorage.setItem(NAV_KEY, next ? '1' : '0');
+    } catch (err) {
+      console.warn('[shell] could not save the sidebar preference:', err);
+    }
+  }, [s.navCollapsed, set]);
+
   useEffect(() => {
     document.title = 'Visual HSE · ' + page.title;
   }, [page.title]);
@@ -55,7 +75,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [s.menuOpen, set]);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-[1560px] gap-6 px-6 max-nav:gap-4 max-compact:block max-compact:px-4">
+    <div className="flex min-h-screen gap-(--gutter) px-(--gutter) max-compact:block">
+      {/* Pinned to the left edge: the sidebar sits one small gutter from the window, with no centring gap before it. */}
       {s.menuOpen ? (
         <button
           type="button"
@@ -64,9 +85,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={() => set({ menuOpen: false })}
         />
       ) : null}
-      <Sidebar current={page.nav} open={s.menuOpen} />
+      <Sidebar current={page.nav} open={s.menuOpen} collapsed={s.navCollapsed} onToggle={toggleNav} />
       <Rail current={page.nav} onMenu={() => set({ menuOpen: true })} />
-      <div className="relative min-w-0 flex-1 pb-10">
+      <div className="relative min-w-0 flex-1 pb-(--gutter)">
         <TopBar onMenu={() => set({ menuOpen: true })} onGuide={startTour} />
         <main>{children}</main>
         <Tour key={page.id} page={page.id} open={touring} onClose={stopTour} />
@@ -75,34 +96,50 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
+const NAV_KEY = 'vhse-nav-collapsed';
 const roundBtn = 'relative grid size-11 flex-none place-items-center rounded-[8px] bg-paper text-ink shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line hover:bg-paper';
 
-function Brand() {
+function Brand({ compact }: { compact?: boolean }) {
   return (
     <Link href="/" aria-label="Visual HSE home" className="inline-flex h-11 items-center rounded-[8px] px-1.5">
-      <Logo />
+      <Logo compact={compact} />
     </Link>
   );
 }
 
-function Sidebar({ current, open }: { current: string; open: boolean }) {
+function Sidebar({ current, open, collapsed, onToggle }: { current: string; open: boolean; collapsed: boolean; onToggle: () => void }) {
+  // Collapsing only applies on desktop; the phone drawer always shows labels. `rail` hides a label on desktop only.
+  const rail = collapsed ? 'nav:sr-only' : '';
+  const Toggle = collapsed ? PanelLeftOpen : PanelLeftClose;
   return (
     <aside
       id="sidebar"
       className={cx(
         // Sticky on desktop: the sidebar is one viewport tall, so it stays pinned while the page scrolls.
-        'sticky top-4 z-40 my-4 flex h-[calc(100vh-2rem)] w-[244px] flex-none flex-col gap-2 self-start rounded-lg bg-paper p-3 shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line',
-        'max-nav:fixed max-nav:top-3 max-nav:bottom-3 max-nav:left-3 max-nav:my-0 max-nav:h-auto max-nav:bg-paper max-nav:shadow-[0_20px_50px_-20px_rgb(0_0_0/0.3)] max-nav:transition-transform max-nav:duration-200 max-nav:ease-out',
+        'sticky top-(--gutter) z-40 my-(--gutter) flex h-[calc(100vh-2*var(--gutter))] w-[244px] flex-none flex-col gap-1.5 self-start rounded-lg bg-paper p-3 shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line transition-[width] duration-200 ease-out',
+        collapsed && 'nav:w-[64px]',
+        'max-nav:fixed max-nav:top-(--gutter) max-nav:bottom-(--gutter) max-nav:left-(--gutter) max-nav:my-0 max-nav:h-auto max-nav:bg-paper max-nav:shadow-[0_20px_50px_-20px_rgb(0_0_0/0.3)] max-nav:transition-transform max-nav:duration-200 max-nav:ease-out',
         open ? 'max-nav:translate-x-0' : 'max-nav:-translate-x-[calc(100%+1rem)]',
       )}
     >
-      <div className="flex items-center justify-between">
-        <Brand />
+      <div className={cx('flex items-center justify-between', collapsed && 'nav:flex-col nav:gap-1')}>
+        <Brand compact={collapsed} />
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
+          aria-controls="sidebar"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="grid size-9 place-items-center rounded-[8px] text-muted hover:bg-sunk hover:text-ink max-nav:hidden"
+        >
+          <Toggle aria-hidden="true" strokeWidth={1.75} className="size-[18px]" />
+        </button>
         <CloseBtn />
       </div>
 
-      <nav aria-label="Main" data-tour="shell-nav" className="mt-2 -mr-1 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
-        <p className="px-3 pb-1.5 text-[11.5px] font-medium text-soft">Menu</p>
+      <nav aria-label="Main" data-tour="shell-nav" className={cx('mt-1 -mr-1 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]', collapsed && 'nav:mr-0 nav:pr-0 nav:[scrollbar-width:none]')}>
+        <p className={cx('px-3 pb-1.5 text-[11.5px] font-medium text-soft', rail)}>Menu</p>
         <ul className="flex flex-col gap-0.5">
           {PAGES.map((p) => {
             const here = current === p.id;
@@ -111,13 +148,25 @@ function Sidebar({ current, open }: { current: string; open: boolean }) {
                 <Link
                   href={p.href}
                   aria-current={here ? 'page' : undefined}
-                  className="group flex h-11 items-center gap-3 rounded-[8px] pr-2 pl-4 text-[13.5px] text-ink-2 hover:bg-sunk aria-[current=page]:bg-ink aria-[current=page]:text-paper"
+                  title={collapsed ? (p.count ? `${p.nav} · ${p.count[0]} open` : p.nav) : undefined}
+                  className={cx(
+                    'group relative flex h-10 items-center gap-3 rounded-[8px] pr-2 pl-4 text-[13.5px] text-ink-2 hover:bg-sunk aria-[current=page]:bg-ink aria-[current=page]:text-paper',
+                    collapsed && 'nav:justify-center nav:px-0',
+                  )}
                 >
-                  <p.icon aria-hidden="true" strokeWidth={1.75} className="size-[18px] flex-none text-muted group-hover:text-ink group-aria-[current=page]:text-lime" />
-                  <span className="min-w-0 flex-1 truncate">{p.nav}</span>
+                  <span className="relative flex-none">
+                    <p.icon aria-hidden="true" strokeWidth={1.75} className="size-[18px] text-muted group-hover:text-ink group-aria-[current=page]:text-lime" />
+                    {/* On the rail a count becomes a dot on the icon's corner; the number is in the tooltip. */}
+                    {collapsed && p.count ? <CountDot tone={p.count[1]} className="-top-1 -right-1 hidden nav:block" /> : null}
+                  </span>
+                  <span className={cx('min-w-0 flex-1 truncate', rail)}>{p.nav}</span>
                   {p.count ? (
                     <span
-                      className={cx('grid h-5 min-w-5 place-items-center rounded-[5px] px-1.5 text-[10.5px] font-semibold tabular-nums', p.count[1] === 'act' ? 'bg-act text-paper' : 'bg-lime text-lime-ink')}
+                      className={cx(
+                        'grid h-5 min-w-5 place-items-center rounded-[5px] px-1.5 text-[10.5px] font-semibold tabular-nums',
+                        p.count[1] === 'act' ? 'bg-act text-paper' : 'bg-lime text-lime-ink',
+                        collapsed && 'nav:hidden',
+                      )}
                       aria-label={`${p.count[0]} open`}
                     >
                       {p.count[0]}
@@ -130,7 +179,7 @@ function Sidebar({ current, open }: { current: string; open: boolean }) {
         </ul>
       </nav>
 
-      <div className="rounded-md bg-sage p-3.5">
+      <div className={cx('rounded-md bg-sage p-3.5', collapsed && 'nav:hidden')}>
         <div className="flex items-center justify-between gap-2">
           <span className="text-[13px] font-medium">{site.name}</span>
           <span className="inline-flex h-6 items-center gap-1.5 rounded-[5px] bg-lime px-2.5 text-[10.5px] font-semibold text-lime-ink before:size-1.5 before:rounded-[2px] before:bg-low">LIVE</span>
@@ -138,9 +187,9 @@ function Sidebar({ current, open }: { current: string; open: boolean }) {
         <p className="mt-0.5 text-[12px] text-muted">{site.shift}</p>
       </div>
 
-      <div className="flex items-center gap-2.5 px-1 pt-1">
+      <div className={cx('flex items-center gap-2.5 px-1 pt-1', collapsed && 'nav:justify-center')} title={collapsed ? site.user : undefined}>
         <span className="grid size-10 flex-none place-items-center rounded-[8px] bg-ink text-[12.5px] font-semibold text-lime" aria-hidden="true">{site.initials}</span>
-        <span className="min-w-0 text-[13px] leading-tight">
+        <span className={cx('min-w-0 text-[13px] leading-tight', rail)}>
           <span className="block truncate font-medium">{site.user}</span>
           <span className="block text-[12px] text-muted">Signed in</span>
         </span>
@@ -155,7 +204,7 @@ function Sidebar({ current, open }: { current: string; open: boolean }) {
  */
 function Rail({ current, onMenu }: { current: string; onMenu: () => void }) {
   return (
-    <aside className="sticky top-4 z-20 my-4 hidden h-[calc(100vh-2rem)] w-[64px] flex-none flex-col items-center gap-2 self-start rounded-lg bg-paper py-3 shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line compact:max-nav:flex">
+    <aside className="sticky top-(--gutter) z-20 my-(--gutter) hidden h-[calc(100vh-2*var(--gutter))] w-[64px] flex-none flex-col items-center gap-2 self-start rounded-lg bg-paper py-3 shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line compact:max-nav:flex">
       <Link href="/" aria-label="Visual HSE home" className="grid size-11 place-items-center rounded-[8px]">
         <span className="grid size-9 place-items-center rounded-[9px] bg-ink text-paper [--logo-cut:#141414]">
           <LogoMark className="size-[26px]" />
@@ -179,7 +228,7 @@ function Rail({ current, onMenu }: { current: string; onMenu: () => void }) {
                 >
                   <p.icon aria-hidden="true" strokeWidth={1.75} className="size-[18px] text-muted group-hover:text-ink group-aria-[current=page]:text-lime" />
                   {p.count ? (
-                    <span className={cx('absolute top-1.5 right-1.5 size-2 rounded-[2px] ring-2 ring-paper', p.count[1] === 'act' ? 'bg-act' : 'bg-lime')} aria-hidden="true" />
+                    <CountDot tone={p.count[1]} className="top-1.5 right-1.5" />
                   ) : null}
                 </Link>
               </li>
@@ -194,6 +243,11 @@ function Rail({ current, onMenu }: { current: string; onMenu: () => void }) {
   );
 }
 
+/** A count shown as a small square dot, for icon-only navigation: red when urgent, lime otherwise. */
+function CountDot({ tone, className }: { tone: Tone; className?: string }) {
+  return <span aria-hidden="true" className={cx('absolute size-2 rounded-[2px] ring-2 ring-paper', tone === 'act' ? 'bg-act' : 'bg-lime', className)} />;
+}
+
 function CloseBtn() {
   const { set } = useHse();
   return (
@@ -205,7 +259,7 @@ function CloseBtn() {
 
 function TopBar({ onMenu, onGuide }: { onMenu: () => void; onGuide: () => void }) {
   return (
-    <header className="relative z-20 flex items-center justify-between gap-3 pt-4 pb-3 nav:absolute nav:top-0 nav:right-0 nav:pb-0">
+    <header className="relative z-20 flex items-center justify-between gap-3 pt-3 pb-3 nav:absolute nav:top-0 nav:right-0 nav:pb-0">
       <div className="flex items-center gap-2 compact:hidden">
         <button type="button" className={roundBtn} aria-label="Open menu" aria-controls="sidebar" onClick={onMenu}>
           <Icon name="menu" />

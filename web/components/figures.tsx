@@ -1,7 +1,7 @@
 /* Shared figures: headline stat, sensor spark and the dot-column chart. Cells and dots, one grammar. */
 import type { ReactNode } from 'react';
 import type { Tone } from '@/lib/data';
-import { cx, FILL } from './ui';
+import { cx, FILL, meta, Num } from './ui';
 
 /** Soft background for a level, used by floor-plan tiles and the heat map. */
 export const TINT: Record<Tone, string> = { act: 'bg-act-bg', watch: 'bg-watch-bg', low: 'bg-lime/60', off: 'bg-sunk', info: 'bg-sunk' };
@@ -16,6 +16,37 @@ export function BigStat({ value, unit, label, badge, title }: { value: ReactNode
       </span>
       <span className="mt-2 text-[13px] text-muted">{label}</span>
       <span className="mt-1 flex h-6 items-center">{badge}</span>
+    </div>
+  );
+}
+
+/** Value and unit sizes for Stat: units stay readable next to a big number. */
+const STAT_SIZE = { md: ['text-[22px]', 'text-[12px]'], lg: ['text-[40px]', 'text-[14px]'] } as const;
+
+/** A small label over a value, for stat grids inside widgets. */
+export function Stat({ label, value, unit, size = 'md', className }: { label: string; value: ReactNode; unit?: string; size?: keyof typeof STAT_SIZE; className?: string }) {
+  const [valueSize, unitSize] = STAT_SIZE[size];
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <span className={meta}>{label}</span>
+      <span className="flex items-baseline gap-1">
+        <Num value={value} className={cx(valueSize, className)} />
+        {unit ? <span className={cx(unitSize, 'text-soft')}>{unit}</span> : null}
+      </span>
+    </div>
+  );
+}
+
+/** Default ticks per bar: dense enough that short and long bars read as one family. */
+const TICKS = 18;
+
+/** A row of thin vertical ticks, the share n / total of them coloured: progress at a glance. */
+export function TickBar({ n, total, tone, ticks = TICKS, className }: { n: number; total: number; tone: Tone | 'ink'; ticks?: number; className?: string }) {
+  const on = tone === 'ink' ? 'bg-ink' : FILL[tone];
+  const lit = total > 0 ? Math.round((n / total) * ticks) : 0;
+  return (
+    <div className={cx('flex h-11 items-stretch justify-between', className)} aria-hidden="true">
+      {Array.from({ length: ticks }, (_, i) => <span key={i} className={cx('w-[2px] rounded-[1px]', i < lit ? on : 'bg-line-2')} />)}
     </div>
   );
 }

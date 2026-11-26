@@ -1,75 +1,76 @@
-/* Outdoor setting: a hazy hot-day sky, sandy ground running to the horizon, and the sun seen as a camera
-   sees it: a bright disc inside a wide hazy halo. Shadows come from the sun's compass bearing; the forecast sets its warmth. */
+/* Outdoor setting: a real freight yard (CC0 photo by Sergej Majboroda, Poly Haven) projected onto the ground around
+   the site, with the sun where the photo has it. Shadows come from the sun's compass bearing; the forecast sets its warmth. */
 import * as THREE from 'three';
+import { GroundedSkybox } from 'three/addons/objects/GroundedSkybox.js';
+import { canvasTexture } from './kit';
 
-/** The sun low in the haze, back-left, far away: inside the frame just above the horizon. */
-export const SUN_AT = new THREE.Vector3(-90, 5, -62);
-/** Light comes from the sun's compass bearing but higher (about 35°), giving midday-length shadows. */
+const BACKDROP_URL = '/heat/env/freight_station_4k.webp';
+/** Where the sun sits in the photo: equirect u and elevation. Measured from the HDR's brightest pixel. */
+const PHOTO_SUN = { u: 0.6, elevation: THREE.MathUtils.degToRad(9.3) } as const;
+/** Compass bearing the sun is turned to: back-left of the default view, so it stays in frame. */
+const SUN_BEARING = new THREE.Vector2(-90, -62).normalize();
+/**
+ * Projection: a small radius brings the yard's crane and wagons in close and keeps the low sun inside the frame.
+ * Height sets where the photo stops being flat ground (below about -6° here): the photo was taken about 2 m up, but at 2
+ * the grass bank just under the horizon was flattened onto the ground and smeared into streaks. At 4 that band stays on the
+ * dome wall and reads as an upright bank. The dome grows when the camera may sit further out (narrow cards).
+ */
+const DOME = { height: 4, radius: 40, margin: 12 } as const;
+
+/** Rotation that turns the photo's sun onto SUN_BEARING. Equirect u maps to direction (-cos 2πu, -sin 2πu) in x, z. */
+const photoAngle = Math.atan2(-Math.cos(2 * Math.PI * PHOTO_SUN.u), -Math.sin(2 * Math.PI * PHOTO_SUN.u));
+export const BACKDROP_ROTATION = Math.atan2(SUN_BEARING.x, SUN_BEARING.y) - photoAngle;
+
+/** The sun disc, just inside the dome along the photo sun's direction. */
+const SUN_DISTANCE = DOME.radius * 0.92;
+export const SUN_AT = new THREE.Vector3(
+  SUN_BEARING.x * Math.cos(PHOTO_SUN.elevation) * SUN_DISTANCE,
+  DOME.height + Math.sin(PHOTO_SUN.elevation) * SUN_DISTANCE,
+  SUN_BEARING.y * Math.cos(PHOTO_SUN.elevation) * SUN_DISTANCE,
+);
+
+/** Light comes from the sun's bearing but higher (about 35°), giving midday-length shadows a heat study needs. */
 const LIGHT_ELEVATION = THREE.MathUtils.degToRad(35);
-const bearing = new THREE.Vector2(SUN_AT.x, SUN_AT.z).normalize();
-export const SUN_DIR = new THREE.Vector3(bearing.x * Math.cos(LIGHT_ELEVATION), Math.sin(LIGHT_ELEVATION), bearing.y * Math.cos(LIGHT_ELEVATION));
+export const SUN_DIR = new THREE.Vector3(SUN_BEARING.x * Math.cos(LIGHT_ELEVATION), Math.sin(LIGHT_ELEVATION), SUN_BEARING.y * Math.cos(LIGHT_ELEVATION));
 
-/** Natural colours of a hot, hazy day. Not UI tokens: these describe the world, not the interface. */
-const NATURE = {
-  zenith: '#bcd3e2',
-  horizon: '#efe4d2',
-  ground: 0xb8aa8e,
-  mildLight: 0xfff6ea,
-  hotLight: 0xffc98a,
-} as const;
+/** Natural light colours of a hot day. Not UI tokens: these describe the world, not the interface. */
+const NATURE = { mildLight: 0xfff3e2, hotLight: 0xffc98a } as const;
 const INTENSITY = { mild: 2.0, hot: 3.1 } as const;
-/** Haze: the ground fades into the horizon colour well beyond the site. */
-const HAZE = { near: 40, far: 120 } as const;
-const GROUND_SIZE = 400;
-/** World sizes at the sun's distance (~110 m): disc about 1.5° across with glow, halo spreading into the haze. */
-const SUN_SIZE = { disc: 9, halo: 60 } as const;
+/** Ground that only shows shadows, so the equipment's shadows fall on the photo's yard. */
+const SHADOW_CATCHER = { size: 40, opacity: 0.32 } as const;
+const SUN_DISC = 3.2;
+/** Radial falloff of the disc: white core, warm rim, soft edge. */
+const DISC_STOPS: [number, string][] = [[0, 'rgba(255,255,250,1)'], [0.22, 'rgba(255,250,232,1)'], [0.32, 'rgba(255,232,186,0.6)'], [1, 'rgba(255,214,150,0)']];
 
-function canvas(size: number, draw: (g: CanvasRenderingContext2D) => void): THREE.CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const g = c.getContext('2d');
-  if (!g) throw new Error('2D canvas is not available for the sky');
-  draw(g);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
+export interface Sky { light: THREE.DirectionalLight; ready: Promise<void>; setHeat: (heat: number) => void; fit: (cameraDistance: number) => void; dispose: () => void }
 
-/** Vertical sky gradient: clear blue overhead fading to a warm haze at the horizon. */
-function skyTexture(): THREE.CanvasTexture {
-  return canvas(256, (g) => {
-    const v = g.createLinearGradient(0, 0, 0, 256);
-    v.addColorStop(0, NATURE.zenith);
-    v.addColorStop(0.75, NATURE.horizon);
-    v.addColorStop(1, NATURE.horizon);
-    g.fillStyle = v;
-    g.fillRect(0, 0, 256, 256);
+export function buildSky(scene: THREE.Scene, renderer: THREE.WebGLRenderer, shadowSize: number): Sky {
+  // Starts with an empty map; the card's loading cover stays up until the photo arrives.
+  const dome = new GroundedSkybox(new THREE.Texture(), DOME.height, DOME.radius);
+  const domeMat = dome.material as THREE.MeshBasicMaterial;
+  dome.rotation.y = BACKDROP_ROTATION;
+  dome.position.y = DOME.height;
+  scene.add(dome);
+  // The site's reflections and ambient light come from the same yard (see assets.ts), turned the same way.
+  scene.environmentRotation.y = BACKDROP_ROTATION;
+
+  let photo: THREE.Texture | null = null;
+  const ready = new THREE.TextureLoader().loadAsync(BACKDROP_URL).then((t) => {
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    domeMat.map = t;
+    domeMat.needsUpdate = true;
+    photo = t;
   });
-}
 
-/** One radial glow; `stops` are [offset, rgba]. */
-function glow(stops: [number, string][]): THREE.CanvasTexture {
-  return canvas(256, (g) => {
-    const r = g.createRadialGradient(128, 128, 0, 128, 128, 128);
-    stops.forEach(([o, c]) => r.addColorStop(o, c));
-    g.fillStyle = r;
-    g.fillRect(0, 0, 256, 256);
-  });
-}
-
-export interface Sky { light: THREE.DirectionalLight; setHeat: (heat: number) => void; dispose: () => void }
-
-export function buildSky(scene: THREE.Scene, shadowSize: number): Sky {
-  const sky = skyTexture();
-  scene.background = sky;
-  scene.fog = new THREE.Fog(NATURE.horizon, HAZE.near, HAZE.far);
-
-  const groundMat = new THREE.MeshStandardMaterial({ color: NATURE.ground, roughness: 1 });
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE), groundMat);
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.01;
-  ground.receiveShadow = true;
-  scene.add(ground);
+  const catcherMat = new THREE.ShadowMaterial({ opacity: SHADOW_CATCHER.opacity });
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(SHADOW_CATCHER.size, SHADOW_CATCHER.size), catcherMat);
+  catcher.rotation.x = -Math.PI / 2;
+  catcher.position.y = 0.005;
+  catcher.receiveShadow = true;
+  // Drawn after the apron, so shadows land on the concrete as well as the yard.
+  catcher.renderOrder = 1;
+  scene.add(catcher);
 
   const light = new THREE.DirectionalLight(NATURE.mildLight, INTENSITY.mild);
   light.position.copy(SUN_DIR).multiplyScalar(20);
@@ -80,36 +81,39 @@ export function buildSky(scene: THREE.Scene, shadowSize: number): Sky {
   Object.assign(light.shadow.camera, { left: -14, right: 14, top: 11, bottom: -11, far: 50 });
   scene.add(light);
 
-  // The sun through haze: a wide warm halo with a near-white disc at its heart. Sprites always face the camera.
-  const core = glow([[0, 'rgba(255,255,248,1)'], [0.14, 'rgba(255,252,236,1)'], [0.2, 'rgba(255,238,196,0.75)'], [0.45, 'rgba(255,222,160,0.2)'], [1, 'rgba(255,214,150,0)']]);
-  const halo = glow([[0, 'rgba(255,232,186,0.55)'], [0.35, 'rgba(255,220,168,0.22)'], [1, 'rgba(255,210,160,0)']]);
-  const sprite = (map: THREE.Texture, size: number): THREE.Sprite => {
-    const m = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false, fog: false, toneMapped: false }));
-    m.position.copy(SUN_AT);
-    m.scale.setScalar(size);
-    scene.add(m);
-    return m;
-  };
-  const haloSprite = sprite(halo, SUN_SIZE.halo);
-  const discSprite = sprite(core, SUN_SIZE.disc);
-  const tint = new THREE.Color(NATURE.mildLight);
+  // A crisp disc on the photo's sun glow, so the sun reads at a glance. Sprites always face the camera.
+  const discTex = canvasTexture(128, (g) => {
+    const r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    DISC_STOPS.forEach(([o, c]) => r.addColorStop(o, c));
+    g.fillStyle = r;
+    g.fillRect(0, 0, 128, 128);
+  });
+  const disc = new THREE.Sprite(new THREE.SpriteMaterial({ map: discTex, transparent: true, depthWrite: false, toneMapped: false }));
+  disc.position.copy(SUN_AT);
+  disc.scale.setScalar(SUN_DISC);
+  scene.add(disc);
 
   return {
     light,
+    ready,
     setHeat: (heat) => {
       const h = THREE.MathUtils.clamp(heat, 0, 1);
       light.color.set(NATURE.mildLight).lerp(new THREE.Color(NATURE.hotLight), h);
       light.intensity = THREE.MathUtils.lerp(INTENSITY.mild, INTENSITY.hot, h);
-      tint.copy(light.color);
-      (haloSprite.material as THREE.SpriteMaterial).color.copy(tint);
-      // A hotter day reads as a bigger, warmer sun.
-      discSprite.scale.setScalar(SUN_SIZE.disc * (1 + h * 0.3));
+      // A hotter day reads as a bigger sun.
+      disc.scale.setScalar(SUN_DISC * (1 + h * 0.3));
+    },
+    fit: (cameraDistance) => {
+      // Scaling the dome scales its floor height too, so lift it to keep the photo's ground at y 0.
+      const k = Math.max(1, (cameraDistance + DOME.margin) / DOME.radius);
+      dome.scale.setScalar(k);
+      dome.position.y = DOME.height * k;
     },
     dispose: () => {
-      [sky, core, halo].forEach((t) => t.dispose());
-      [haloSprite, discSprite].forEach((sp) => (sp.material as THREE.Material).dispose());
-      groundMat.dispose();
-      ground.geometry.dispose();
+      photo?.dispose();
+      discTex.dispose();
+      [domeMat, catcherMat, disc.material].forEach((m) => m.dispose());
+      [dome.geometry, catcher.geometry].forEach((g) => g.dispose());
     },
   };
 }
