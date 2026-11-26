@@ -23,7 +23,8 @@ export const GET = handler(async (request: Request, ctx: RouteContext<'/api/vide
   if (!getVideo(id)) return problem(404, 'That video does not exist.');
 
   const [name, type] = FILES[kind];
-  const file = path.join(uploadDir(id), name);
+  // Uploads are created at runtime, not part of the source; tell the bundler not to trace this path.
+  const file = path.join(/*turbopackIgnore: true*/ uploadDir(id), name);
   let size: number;
   try {
     size = (await stat(file)).size;
