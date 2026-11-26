@@ -8,7 +8,8 @@ sends it here, and polls the job until it finishes. This service does pipeline s
 3. **Detect**: finds people in each frame (YOLO), and helmets, vests, gloves and masks 2.5 times a second (PPE model)
 4. **Track**: gives each person a temporary number across frames (ByteTrack)
 
-The web app then runs the rules (restricted areas, safety gear) and lists the events for review.
+When a job ends, the service calls the web app back (`callback_url`). The app then reads the result, runs the rules
+(restricted areas, safety gear) and stores the events, even if nobody has the page open.
 
 ## Safety-gear model
 
@@ -58,6 +59,7 @@ The model weights (`yolo11s.pt`, about 20 MB, and the gear model, 45 MB) downloa
 | `VISION_MODEL` | `yolo11s.pt` | this service. `yolo11m.pt` is more accurate and about 2× slower on CPU |
 | `VISION_PPE_MODEL` | `models/ppe.onnx` | this service: where the gear model is kept |
 | `VISION_SERVICE_URL` | `http://127.0.0.1:8001` | the web app, if the service runs elsewhere |
+| `CAMERA_APP_URL` | the address the upload came in on | the web app: where this service can reach it for the callback, if different |
 | `CAMERA_DATA_DIR` | `web/data` | the web app: database and uploads. Both processes must see the same paths |
 
 ## Limits

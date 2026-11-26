@@ -45,3 +45,4 @@ Add dated, one-line learnings below (gotchas, decisions, "don't do X because Y")
 - 2026-11-26 · With `cacheComponents` on, GET route handlers that read SQLite must call `await connection()` first, or they are prerendered at build. API handlers are wrapped by `web/lib/server/route.ts`, which calls `unstable_rethrow` so Next's own signals pass through.
 - 2026-11-26 · `error.tsx` in this Next version receives `retry`, not `reset`.
 - 2026-11-26 · Load third-party model weights as ONNX, not `.pt`: a `.pt` file is a pickle and can run code. Pin the download to a revision and check its SHA-256 (see `vision-service/ppe.py`).
+- 2026-11-26 · Camera events are stored server-side (`events` table) and rebuilt by `refreshEvents` in `camera-db.ts` whenever a video completes or a camera, area or gear rule changes. Any new write that can change events must call it (outside a transaction). Reviews stay in their own table keyed by the deterministic event id.

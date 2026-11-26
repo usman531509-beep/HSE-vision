@@ -71,3 +71,6 @@ export interface CameraEvent {
   gear?: Gear;
   review: Review;
 }
+
+/** An event as the server stores it; the review decision is kept separately so re-running the rules keeps it. */
+export type DetectedEvent = Omit<CameraEvent, 'review'>;

@@ -49,5 +49,5 @@ export const POST = handler(async (request: Request) => {
     id, cameraId, fileName: file.name.slice(0, 120), src: '', recordedAt: recordedLabel(new Date()),
     durationS: 0, fps: 25, status: 'uploaded', progress: 0,
   });
-  return Response.json(await startAnalysis(video, source), { status: 201 });
+  return Response.json(await startAnalysis(video, source, new URL(request.url).origin), { status: 201 });
 }, { write: true });

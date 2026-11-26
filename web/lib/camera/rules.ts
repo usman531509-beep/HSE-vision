@@ -1,8 +1,8 @@
-/* The "Rules" step of the pipeline: turns person tracks, PPE sightings and the camera's set-up into events.
-   It mirrors what the Python service will do, so the screens stay right when a user edits a zone or a gear rule. */
+/* The "Rules" step of the pipeline: turns person tracks, gear verdicts and the camera's set-up into events.
+   Runs on the server (lib/server/camera-db.ts) after analysis and whenever a camera, area or gear rule changes. */
 import { GEAR_LABEL } from './labels';
 import { footPoint, insidePolygon } from './geometry';
-import type { Camera, CameraEvent, GearSighting, Review, Video, Zone } from './types';
+import type { Camera, DetectedEvent, GearSighting, Video, Zone } from './types';
 
 interface Run { start: number; confs: number[]; lastSeen: number }
 
@@ -44,11 +44,14 @@ function confirmedAt(video: Video, trackId: number, minSamples: number): number 
 const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-export function buildEvents(video: Video, camera: Camera, zones: Zone[], sightings: GearSighting[], reviews: Record<string, Review>): CameraEvent[] {
+/** The gear verdicts of one video, tagged with its id. */
+export const sightingsOf = (video: Video): GearSighting[] => (video.gear?.sightings ?? []).map((s) => ({ ...s, videoId: video.id }));
+
+export function buildEvents(video: Video, camera: Camera, zones: Zone[]): DetectedEvent[] {
   if (!video.tracks) return [];
   const minSamples = Math.max(1, Math.round((camera.confirmFrames / video.fps) * video.tracks.fps));
   const frameOf = (t: number) => Math.round(t * video.fps);
-  const events: CameraEvent[] = [];
+  const events: DetectedEvent[] = [];
 
   for (const zone of zones.filter((z) => z.cameraId === camera.id && z.points.length >= 3)) {
     for (const [trackId, runs] of zoneRuns(video, zone, minSamples)) {
@@ -58,13 +61,12 @@ export function buildEvents(video: Video, camera: Camera, zones: Zone[], sightin
           id, cameraId: camera.id, videoId: video.id, type: 'restricted_zone_entry',
           description: `person-${trackId} entered ${zone.name}`,
           t: run.start, frame: frameOf(run.start), confidence: round2(avg(run.confs)), trackId, zoneId: zone.id,
-          review: reviews[id] ?? 'needs_review',
         });
       });
     }
   }
 
-  for (const s of sightings.filter((g) => g.videoId === video.id && !g.seen && camera.requiredGear.includes(g.gear))) {
+  for (const s of sightingsOf(video).filter((g) => !g.seen && camera.requiredGear.includes(g.gear))) {
     const t = confirmedAt(video, s.trackId, minSamples);
     if (t === undefined) continue;
     const id = `${video.id}:gear:${s.gear}:${s.trackId}`;
@@ -72,7 +74,6 @@ export function buildEvents(video: Video, camera: Camera, zones: Zone[], sightin
       id, cameraId: camera.id, videoId: video.id, type: 'possible_missing_ppe',
       description: `${GEAR_LABEL[s.gear]} not seen on person-${s.trackId}`,
       t, frame: frameOf(t), confidence: s.confidence, trackId: s.trackId, gear: s.gear,
-      review: reviews[id] ?? 'needs_review',
     });
   }
 

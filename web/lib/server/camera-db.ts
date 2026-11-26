@@ -4,7 +4,8 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { DEMO } from '../camera/demo';
-import type { Camera, Gear, GearCheck, Point, Processing, Review, Tracks, Video, Zone } from '../camera/types';
+import { buildEvents } from '../camera/rules';
+import type { Camera, DetectedEvent, EventType, Gear, GearCheck, Point, Processing, Review, Tracks, Video, Zone } from '../camera/types';
 
 export const DATA_DIR = process.env.CAMERA_DATA_DIR ?? path.join(process.cwd(), 'data');
 export const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
@@ -25,7 +26,13 @@ CREATE TABLE IF NOT EXISTS videos (
 );
 CREATE TABLE IF NOT EXISTS reviews (
   event_id TEXT PRIMARY KEY, review TEXT NOT NULL, updated_at TEXT NOT NULL
-);`;
+);
+CREATE TABLE IF NOT EXISTS events (
+  id TEXT PRIMARY KEY, camera_id TEXT NOT NULL, video_id TEXT NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+  type TEXT NOT NULL, description TEXT NOT NULL, t REAL NOT NULL, frame INTEGER NOT NULL, confidence REAL NOT NULL,
+  track_id INTEGER NOT NULL, zone_id TEXT, gear TEXT
+);
+CREATE INDEX IF NOT EXISTS events_by_video ON events(video_id);`;
 
 /* Storage modes:
    - local: a database file on this server's disk. Changes and uploads are kept.
@@ -36,10 +43,10 @@ const WANT_READ_ONLY = process.env.CAMERA_STORAGE ? process.env.CAMERA_STORAGE =
 
 // One connection per server process; dev hot reloads reuse it instead of opening a new one each time.
 // Rename the key whenever the stored shape changes, or a running dev server would hand back the old object.
-const holder = globalThis as unknown as { cameraStoreV3?: { conn: DatabaseSync; readOnly: boolean } };
+const holder = globalThis as unknown as { cameraStoreV4?: { conn: DatabaseSync; readOnly: boolean } };
 
 function open(): { conn: DatabaseSync; readOnly: boolean } {
-  if (holder.cameraStoreV3) return holder.cameraStoreV3;
+  if (holder.cameraStoreV4) return holder.cameraStoreV4;
   let conn: DatabaseSync;
   let readOnly = WANT_READ_ONLY;
   try {
@@ -56,8 +63,10 @@ function open(): { conn: DatabaseSync; readOnly: boolean } {
   const { n } = conn.prepare('SELECT COUNT(*) AS n FROM cameras').get() as { n: number };
   if (n === 0) seed(conn);
   else addGearColumn(conn);
-  holder.cameraStoreV3 = { conn, readOnly };
-  return holder.cameraStoreV3;
+  // Events are derived data: rebuilding them on start keeps them in step after any rules-code change.
+  refreshEvents(conn, {});
+  holder.cameraStoreV4 = { conn, readOnly };
+  return holder.cameraStoreV4;
 }
 
 /** Upgrades a database made before gear checks: adds the column and fills it in for the sample videos. */
@@ -104,9 +113,41 @@ const toVideo = (r: Row): Video => ({
   error: str(r.error), tracks: r.tracks ? (JSON.parse(String(r.tracks)) as Tracks) : undefined,
   gear: r.gear ? (JSON.parse(String(r.gear)) as GearCheck) : undefined, credit: str(r.credit),
 });
+const toEvent = (r: Row): DetectedEvent => ({
+  id: String(r.id), cameraId: String(r.camera_id), videoId: String(r.video_id), type: String(r.type) as EventType,
+  description: String(r.description), t: Number(r.t), frame: Number(r.frame), confidence: Number(r.confidence),
+  trackId: Number(r.track_id), zoneId: str(r.zone_id), gear: str(r.gear) as Gear | undefined,
+});
+
+/* ---------- events ---------- */
+/** Re-runs the rules for the completed videos in scope and replaces their stored events.
+    Review decisions live in their own table under the same deterministic event ids, so they survive a re-run.
+    Must not be called inside another transaction. */
+function refreshEvents(conn: DatabaseSync, scope: { cameraId?: string; videoId?: string }): void {
+  const cameras = new Map((conn.prepare('SELECT * FROM cameras').all() as Row[]).map((r) => [String(r.id), toCamera(r)]));
+  const zones = (conn.prepare('SELECT * FROM zones').all() as Row[]).map(toZone);
+  const where = scope.videoId ? 'id = ?' : scope.cameraId ? 'camera_id = ?' : '1 = 1';
+  const args = [scope.videoId ?? scope.cameraId].filter((a): a is string => a !== undefined);
+  const videos = (conn.prepare(`SELECT * FROM videos WHERE status = 'completed' AND ${where}`).all(...args) as Row[]).map(toVideo);
+  const insert = conn.prepare('INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+  inTransaction(conn, () => {
+    for (const v of videos) {
+      conn.prepare('DELETE FROM events WHERE video_id = ?').run(v.id);
+      const camera = cameras.get(v.cameraId);
+      if (!camera) continue;
+      for (const e of buildEvents(v, camera, zones)) {
+        insert.run(e.id, e.cameraId, e.videoId, e.type, e.description, e.t, e.frame, e.confidence, e.trackId, e.zoneId ?? null, e.gear ?? null);
+      }
+    }
+  });
+}
 
 /* ---------- reads ---------- */
-export function listAll(): { cameras: Camera[]; zones: Zone[]; videos: Video[]; reviews: Record<string, Review>; readOnly: boolean } {
+export function listEvents(): DetectedEvent[] {
+  return (db().prepare('SELECT * FROM events ORDER BY video_id, t').all() as Row[]).map(toEvent);
+}
+
+export function listAll(): { cameras: Camera[]; zones: Zone[]; videos: Video[]; events: DetectedEvent[]; reviews: Record<string, Review>; readOnly: boolean } {
   const conn = db();
   const reviews: Record<string, Review> = {};
   for (const r of conn.prepare('SELECT event_id, review FROM reviews').all() as Row[]) reviews[String(r.event_id)] = String(r.review) as Review;
@@ -114,6 +155,7 @@ export function listAll(): { cameras: Camera[]; zones: Zone[]; videos: Video[]; 
     cameras: (conn.prepare('SELECT * FROM cameras ORDER BY sort').all() as Row[]).map(toCamera),
     zones: (conn.prepare('SELECT * FROM zones ORDER BY rowid').all() as Row[]).map(toZone),
     videos: (conn.prepare('SELECT * FROM videos ORDER BY created_at, rowid').all() as Row[]).map(toVideo),
+    events: listEvents(),
     reviews,
     readOnly: isReadOnly(),
   };
@@ -144,27 +186,38 @@ export function createCamera(): Camera {
 export function updateCamera(c: Camera): Camera | undefined {
   const res = db().prepare('UPDATE cameras SET name = ?, area = ?, required_gear = ?, confirm_frames = ? WHERE id = ?')
     .run(c.name, c.area, JSON.stringify(c.requiredGear), c.confirmFrames, c.id);
-  return res.changes ? c : undefined;
+  if (!res.changes) return undefined;
+  refreshEvents(db(), { cameraId: c.id });
+  return c;
 }
 
 export function createZone(z: Zone): Zone {
   db().prepare('INSERT INTO zones VALUES (?,?,?,?)').run(z.id, z.cameraId, z.name, JSON.stringify(z.points));
+  refreshEvents(db(), { cameraId: z.cameraId });
   return z;
 }
 
 export function renameZone(id: string, name: string): Zone | undefined {
   db().prepare('UPDATE zones SET name = ? WHERE id = ?').run(name, id);
   const r = db().prepare('SELECT * FROM zones WHERE id = ?').get(id) as Row | undefined;
-  return r ? toZone(r) : undefined;
+  if (!r) return undefined;
+  const zone = toZone(r);
+  // Event descriptions name the area, so they are rebuilt with the new name.
+  refreshEvents(db(), { cameraId: zone.cameraId });
+  return zone;
 }
 
 /** Deletes an area and the review decisions on its entries (event ids look like video:zone:<zoneId>:…). */
 export function deleteZone(id: string): boolean {
   const conn = db();
-  return inTransaction(conn, () => {
+  const zone = conn.prepare('SELECT camera_id FROM zones WHERE id = ?').get(id) as Row | undefined;
+  if (!zone) return false;
+  inTransaction(conn, () => {
     conn.prepare("DELETE FROM reviews WHERE event_id LIKE '%:zone:' || ? || ':%'").run(id);
-    return conn.prepare('DELETE FROM zones WHERE id = ?').run(id).changes > 0;
+    conn.prepare('DELETE FROM zones WHERE id = ?').run(id);
   });
+  refreshEvents(conn, { cameraId: String(zone.camera_id) });
+  return true;
 }
 
 /** What still belongs to a camera; it can only be deleted once both are zero. */
@@ -182,7 +235,7 @@ export function deleteCamera(id: string): boolean {
   return db().prepare('DELETE FROM cameras WHERE id = ?').run(id).changes > 0;
 }
 
-/** Deletes a video row and the review decisions on its events (event ids start with the video id). */
+/** Deletes a video row, its events (by cascade) and the review decisions on them (event ids start with the video id). */
 export function deleteVideo(id: string): boolean {
   const conn = db();
   return inTransaction(conn, () => {
@@ -223,6 +276,8 @@ export function updateVideo(id: string, patch: VideoPatch): Video | undefined {
     const values = keys.map((k) => (k === 'tracks' || k === 'gear' ? JSON.stringify(patch[k]) : (patch[k] ?? null))) as (string | number | null)[];
     db().prepare(`UPDATE videos SET ${keys.map((k) => `${COLUMN[k]} = ?`).join(', ')} WHERE id = ?`).run(...values, id);
   }
+  // Analysis just finished: create its events now, whether or not anyone has the page open.
+  if (patch.status === 'completed') refreshEvents(db(), { videoId: id });
   return getVideo(id);
 }
 

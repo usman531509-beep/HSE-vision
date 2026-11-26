@@ -1,8 +1,10 @@
 /* Browser-side client for the camera API (app/api). Every call throws an Error with a readable message on failure. */
-import type { Camera, Point, Review, Video, Zone } from './types';
+import type { Camera, DetectedEvent, Point, Review, Video, Zone } from './types';
 
 export interface CameraData {
   cameras: Camera[]; zones: Zone[]; videos: Video[]; reviews: Record<string, Review>;
+  /** Events the server created by running the rules; review decisions are in `reviews`. */
+  events: DetectedEvent[];
   /** Online preview: nothing is saved and uploads are off (see lib/server/camera-db.ts). */
   readOnly: boolean;
 }
@@ -35,6 +37,7 @@ const at = (s: string) => encodeURIComponent(s);
 
 export const cameraApi = {
   load: () => call<CameraData>('/api/camera'),
+  events: () => call<DetectedEvent[]>('/api/events'),
   addCamera: () => call<Camera>('/api/cameras', { method: 'POST' }),
   saveCamera: (c: Camera) => call<Camera>(`/api/cameras/${at(c.id)}`, json('PUT', c)),
   addZone: (cameraId: string, name: string, points: Point[]) => call<Zone>(`/api/cameras/${at(cameraId)}/zones`, json('POST', { name, points })),
