@@ -1,87 +1,137 @@
 import { describe, expect, it } from 'vitest';
-import { DangerousAnalysisSchema, RcaInputSchema, RcaOutputSchema, SmallAnalysisSchema, type RcaOutput } from './schema';
+import { DangerousAnalysisSchema, MediumAnalysisSchema, RcaInputSchema, RcaOutputSchema } from './schema';
 
 const fishbone = { Man: [], Machine: ['Valve seal worn'], Method: [], Material: [], Measurement: [], Environment: [] };
 const evidence = {
   sensor_id: 'GP-IN-01', metric: 'inlet minus outlet pressure', observed: 0.6, threshold: 0.15, unit: 'bar',
   from: '2026-11-25T18:30:00+05:00', to: '2026-11-25T18:36:00+05:00', breaches: true, severe: true, note: 'Drop held for 4 readings',
 };
+const base = {
+  schema_version: 'rca/v2', incident_id: 'INC-GAS-001', generated_at: '2026-11-25T18:45:00+05:00',
+  triage: { basis: 'Reported Medium → medium', rules_fired: ['R2-severe-reading'], provisional: true },
+  verified: { value: true, status: 'confirmed', summary: 'Leak confirmed', evidence: [evidence] },
+};
 
-function dangerous(): RcaOutput {
-  return {
-    schema_version: 'rca/v1', incident_id: 'INC-GAS-001', generated_at: '2026-11-25T18:45:00+05:00', model: 'fake',
-    severity: 'dangerous', triage: { rules_fired: ['R3'], provisional: true },
-    verified: { value: true, status: 'confirmed', summary: 'Leak confirmed', evidence: [evidence] },
-    method: 'board',
-    board: { incident_occurred: 'Gas leak', why_it_happened: 'Seal failed', root_cause: 'No seal replacement schedule', circumstances: ['Area evacuated'], secondary_risks: ['Fire'] },
-    fishbone, root_cause: 'No seal replacement schedule', confidence: 0.8,
-    secondary_risks: [{ risk: 'Fire', likelihood: 'high' }], next_checks: ['Pressure-test the line'],
-  };
-}
+/** Level 1: logged, no cause analysis, no LLM. */
+const small = () => ({ ...base, severity: 'small', level: 1, method: 'log', model: null, note: 'Gas smell: contractor reported a faint smell' });
+/** Level 2: fishbone. */
+const medium = () => ({
+  ...base, severity: 'medium', level: 2, method: 'fishbone', model: 'fake',
+  fishbone, root_cause: 'No seal replacement schedule', confidence: 0.8, next_checks: ['Pressure-test the line'],
+});
+/** Level 3: board chain plus fishbone. */
+const dangerous = () => ({
+  ...medium(), severity: 'dangerous', level: 3, method: 'board',
+  board: { what_happened: 'Gas leak at F3', why_it_happened: 'Seal failed', root_cause: 'No seal replacement schedule', further_harm: ['Fire', 'Explosion'] },
+  further_harm: [{ harm: 'Fire', likelihood: 'high' }, { harm: 'Explosion', likelihood: 'medium' }],
+});
+const ok = (o: unknown) => RcaOutputSchema.safeParse(o).success;
 
-function small(): RcaOutput {
-  const { board: _board, ...rest } = dangerous();
-  return { ...rest, severity: 'small', method: '5_whys', why_chain: ['a', 'b', 'c'] };
-}
-
-describe('RcaOutputSchema', () => {
-  it('accepts a valid dangerous output', () => expect(RcaOutputSchema.safeParse(dangerous()).success).toBe(true));
-  it('accepts a valid small output', () => expect(RcaOutputSchema.safeParse(small()).success).toBe(true));
-
-  it('rejects a dangerous incident without a board', () => {
-    const { board: _board, ...o } = dangerous();
-    expect(RcaOutputSchema.safeParse(o).success).toBe(false);
+describe('RcaOutputSchema: the 3-level ladder', () => {
+  it('accepts a valid output at each level', () => {
+    expect(ok(small())).toBe(true);
+    expect(ok(medium())).toBe(true);
+    expect(ok(dangerous())).toBe(true);
   });
 
-  it('rejects a small incident analysed with the board method', () => {
-    expect(RcaOutputSchema.safeParse({ ...small(), method: 'board' }).success).toBe(false);
+  it('level 1 carries no cause analysis', () => {
+    expect(ok({ ...small(), fishbone })).toBe(false);
+    expect(ok({ ...small(), root_cause: 'x' })).toBe(false);
+    expect(ok({ ...small(), model: 'fake' })).toBe(false);
+  });
+
+  it('level 2 carries no board and no further harm', () => {
+    const d = dangerous();
+    expect(ok({ ...medium(), board: d.board })).toBe(false);
+    expect(ok({ ...medium(), further_harm: d.further_harm })).toBe(false);
+  });
+
+  it('level 3 needs the board, further harm and the fishbone', () => {
+    const { board: _b, ...noBoard } = dangerous();
+    const { further_harm: _h, ...noHarm } = dangerous();
+    const { fishbone: _f, ...noFishbone } = dangerous();
+    expect(ok(noBoard)).toBe(false);
+    expect(ok(noHarm)).toBe(false);
+    expect(ok(noFishbone)).toBe(false);
+    expect(ok({ ...dangerous(), further_harm: [] })).toBe(false);
+  });
+
+  it('keeps severity, level and method in step', () => {
+    expect(ok({ ...medium(), severity: 'dangerous' })).toBe(false);
+    expect(ok({ ...medium(), level: 3 })).toBe(false);
+    expect(ok({ ...small(), level: 2 })).toBe(false);
+    expect(ok({ ...dangerous(), method: 'fishbone' })).toBe(false);
+  });
+
+  it('has no 5 Whys any more', () => {
+    expect(ok({ ...medium(), why_chain: ['a', 'b', 'c'] })).toBe(false);
+    expect(ok({ ...medium(), method: '5_whys' })).toBe(false);
   });
 
   it('rejects a board whose root cause disagrees with the top-level one', () => {
-    const o = dangerous();
-    expect(RcaOutputSchema.safeParse({ ...o, board: { ...o.board!, root_cause: 'Something else' } }).success).toBe(false);
+    const d = dangerous();
+    expect(ok({ ...d, board: { ...d.board, root_cause: 'Something else' } })).toBe(false);
   });
 
-  it('rejects high confidence when sensors did not confirm', () => {
-    const o = dangerous();
-    const unverified = { ...o, verified: { ...o.verified, value: false, status: 'not_confirmed' as const } };
-    expect(RcaOutputSchema.safeParse({ ...unverified, confidence: 0.9 }).success).toBe(false);
-    expect(RcaOutputSchema.safeParse({ ...unverified, confidence: 0.4 }).success).toBe(true);
+  it('rejects a board whose further harm differs from the further_harm list', () => {
+    const d = dangerous();
+    expect(ok({ ...d, board: { ...d.board, further_harm: ['Fire'] } })).toBe(false);
+    expect(ok({ ...d, board: { ...d.board, further_harm: ['Explosion', 'Fire'] } })).toBe(false);
+  });
+
+  it('rejects high confidence when sensors did not confirm, at levels 2 and 3', () => {
+    for (const o of [medium(), dangerous()]) {
+      const unverified = { ...o, verified: { ...o.verified, value: false, status: 'not_confirmed' } };
+      expect(ok({ ...unverified, confidence: 0.9 })).toBe(false);
+      expect(ok({ ...unverified, confidence: 0.4 })).toBe(true);
+    }
   });
 
   it('rejects verified.value that disagrees with status', () => {
-    const o = dangerous();
-    expect(RcaOutputSchema.safeParse({ ...o, verified: { ...o.verified, status: 'not_confirmed' } }).success).toBe(false);
+    for (const o of [small(), medium()]) expect(ok({ ...o, verified: { ...o.verified, status: 'not_confirmed' } })).toBe(false);
   });
 
-  it('requires all six fishbone categories and no others', () => {
+  it('requires all six fishbone categories, no others, and at least one cause', () => {
     const { Environment: _e, ...missing } = fishbone;
-    expect(RcaOutputSchema.safeParse({ ...dangerous(), fishbone: missing }).success).toBe(false);
-    expect(RcaOutputSchema.safeParse({ ...dangerous(), fishbone: { ...fishbone, Money: [] } }).success).toBe(false);
-  });
-
-  it('rejects an empty fishbone', () => {
     const empty = { Man: [], Machine: [], Method: [], Material: [], Measurement: [], Environment: [] };
-    expect(RcaOutputSchema.safeParse({ ...dangerous(), fishbone: empty }).success).toBe(false);
+    expect(ok({ ...medium(), fishbone: missing })).toBe(false);
+    expect(ok({ ...medium(), fishbone: { ...fishbone, Money: [] } })).toBe(false);
+    expect(ok({ ...medium(), fishbone: empty })).toBe(false);
   });
 
-  it('rejects unknown top-level fields and out-of-range confidence', () => {
-    expect(RcaOutputSchema.safeParse({ ...dangerous(), extra: 1 }).success).toBe(false);
-    expect(RcaOutputSchema.safeParse({ ...dangerous(), confidence: 1.2 }).success).toBe(false);
+  it('rejects unknown fields, out-of-range confidence, blank text and empty next checks', () => {
+    expect(ok({ ...dangerous(), extra: 1 })).toBe(false);
+    expect(ok({ ...medium(), confidence: 1.2 })).toBe(false);
+    expect(ok({ ...medium(), root_cause: '   ' })).toBe(false);
+    expect(ok({ ...small(), note: ' ' })).toBe(false);
+    expect(ok({ ...medium(), next_checks: [] })).toBe(false);
+  });
+
+  it('rejects the old rca/v1 version', () => {
+    expect(ok({ ...medium(), schema_version: 'rca/v1' })).toBe(false);
   });
 });
 
 describe('LLM analysis schemas', () => {
-  const common = { fishbone, root_cause: 'x', confidence: 0.5, secondary_risks: [], next_checks: ['y'] };
-  it('limits the why chain to 3–7 steps', () => {
-    expect(SmallAnalysisSchema.safeParse({ ...common, why_chain: ['a', 'b'] }).success).toBe(false);
-    expect(SmallAnalysisSchema.safeParse({ ...common, why_chain: ['a', 'b', 'c'] }).success).toBe(true);
+  const cause = { fishbone, root_cause: 'x', confidence: 0.5, next_checks: ['y'] };
+  const board = { what_happened: 'a', why_it_happened: 'b' };
+  const further_harm = [{ harm: 'Fire', likelihood: 'high' }];
+
+  it('medium: fishbone analysis only', () => {
+    expect(MediumAnalysisSchema.safeParse(cause).success).toBe(true);
+    expect(MediumAnalysisSchema.safeParse({ ...cause, board }).success).toBe(false);
   });
+
+  it('dangerous: board and further harm are required', () => {
+    expect(DangerousAnalysisSchema.safeParse({ ...cause, board, further_harm }).success).toBe(true);
+    expect(DangerousAnalysisSchema.safeParse({ ...cause, board }).success).toBe(false);
+    expect(DangerousAnalysisSchema.safeParse({ ...cause, further_harm }).success).toBe(false);
+  });
+
   it('does not let the LLM set fields that code owns', () => {
-    const board = { incident_occurred: 'a', why_it_happened: 'b', circumstances: ['c'] };
-    expect(DangerousAnalysisSchema.safeParse({ ...common, board }).success).toBe(true);
-    expect(DangerousAnalysisSchema.safeParse({ ...common, board, severity: 'small' }).success).toBe(false);
-    expect(DangerousAnalysisSchema.safeParse({ ...common, board: { ...board, root_cause: 'z' } }).success).toBe(false);
+    expect(DangerousAnalysisSchema.safeParse({ ...cause, board, further_harm, severity: 'small' }).success).toBe(false);
+    expect(DangerousAnalysisSchema.safeParse({ ...cause, board: { ...board, root_cause: 'z' }, further_harm }).success).toBe(false);
+    expect(DangerousAnalysisSchema.safeParse({ ...cause, board, further_harm: [{ harm: 'Fire', likelihood: 'certain' }] }).success).toBe(false);
   });
 });
 
@@ -100,27 +150,5 @@ describe('RcaInputSchema', () => {
   });
   it('rejects an unknown incident kind', () => {
     expect(RcaInputSchema.safeParse({ incident: { ...incident, kind: 'flood' } }).success).toBe(false);
-  });
-});
-
-describe('RcaOutputSchema: method consistency', () => {
-  it('rejects a small incident that also carries a board', () => {
-    expect(RcaOutputSchema.safeParse({ ...small(), board: dangerous().board }).success).toBe(false);
-  });
-  it('rejects a dangerous incident analysed with 5 Whys', () => {
-    expect(RcaOutputSchema.safeParse({ ...dangerous(), method: '5_whys' }).success).toBe(false);
-  });
-  it('rejects a dangerous incident that also carries a why chain', () => {
-    expect(RcaOutputSchema.safeParse({ ...dangerous(), why_chain: ['a', 'b', 'c'] }).success).toBe(false);
-  });
-  it('rejects a small incident without a why chain', () => {
-    const { why_chain: _w, ...o } = small();
-    expect(RcaOutputSchema.safeParse(o).success).toBe(false);
-  });
-  it('requires at least one next check', () => {
-    expect(RcaOutputSchema.safeParse({ ...dangerous(), next_checks: [] }).success).toBe(false);
-  });
-  it('rejects blank text fields', () => {
-    expect(RcaOutputSchema.safeParse({ ...dangerous(), root_cause: '   ' }).success).toBe(false);
   });
 });

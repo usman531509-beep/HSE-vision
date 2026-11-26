@@ -9,14 +9,26 @@ describe('prompts', () => {
     for (const c of FISHBONE_CATEGORIES) expect(SYSTEM_PROMPT).toContain(c);
   });
 
-  it('asks for 5 Whys on a small incident and the board on a dangerous one', async () => {
+  it('asks for the fishbone at level 2 and the board chain plus fishbone at level 3', async () => {
     const input = await loadMockCase('heat-stress');
     const v = verifyIncident(input);
-    expect(buildMessages(input, v, 'small')[1].content).toMatch(/^Method: 5 Whys/);
+    const medium = buildMessages(input, v, 'medium')[1].content;
+    expect(medium).toMatch(/^Method: fishbone/);
+    expect(medium).toContain('"fishbone"');
+    expect(medium).not.toContain('"board"');
+    expect(medium).not.toContain('"further_harm"');
     const dangerous = buildMessages(input, v, 'dangerous')[1].content;
     expect(dangerous).toMatch(/^Method: board analysis/);
-    expect(dangerous).toContain('"circumstances"');
-    expect(dangerous).not.toContain('"why_chain"');
+    for (const field of ['"board"', '"what_happened"', '"why_it_happened"', '"further_harm"', '"fishbone"']) expect(dangerous).toContain(field);
+  });
+
+  it('never asks for a 5 Whys chain or the old circumstances field', async () => {
+    const input = await loadMockCase('heat-stress');
+    const v = verifyIncident(input);
+    for (const s of ['medium', 'dangerous'] as const) {
+      const all = buildMessages(input, v, s).map((m) => m.content).join('\n');
+      expect(all).not.toMatch(/why_chain|5 Whys|circumstances/);
+    }
   });
 
   it('gives the model the facts and sensor evidence, but not the internal severe flags', async () => {
@@ -24,6 +36,7 @@ describe('prompts', () => {
     const user = buildMessages(input, verifyIncident(input), 'dangerous')[1].content;
     const facts = JSON.parse(user.slice(user.indexOf('Facts:\n') + 7));
     expect(facts.incident.id).toBe('BLR-001');
+    expect(facts.severity).toBe('dangerous');
     expect(facts.sensor_verification.evidence[0]).toHaveProperty('observed');
     expect(facts.sensor_verification.evidence[0]).not.toHaveProperty('severe');
   });

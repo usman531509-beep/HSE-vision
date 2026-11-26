@@ -1,4 +1,5 @@
-/* RCA orchestrator: validate input → verify against sensors → triage → LLM analysis → assemble → validate output.
+/* RCA orchestrator: validate input → verify against sensors → triage onto the 3-level ladder → analyse → validate output.
+   Level 1 (small) is logged without the LLM; level 2 (medium) gets a fishbone; level 3 (dangerous) the board chain plus fishbone.
    Code owns incident_id, severity, verification, the method and the confidence cap; the LLM supplies the reasoning. */
 import { analyse } from './analyse';
 import { CONFIDENCE, RCA_SCHEMA_VERSION } from './config';
@@ -15,34 +16,40 @@ const iso = (d: Date): string => d.toISOString().replace('Z', '+00:00');
 
 export async function runRca(rawInput: unknown, opts: RunRcaOptions): Promise<RcaOutput> {
   const input = parseRcaInput(rawInput);
+  const { incident } = input;
   const verification = verifyIncident(input);
-  const t = triage(input.incident, verification);
-  const { result } = await analyse(opts.llm, input, verification, t.severity, opts.signal);
+  const t = triage(incident, verification);
 
-  const confidence = verification.verified ? result.confidence : Math.min(result.confidence, CONFIDENCE.unverifiedCap);
-  const shared = {
+  const base = {
     schema_version: RCA_SCHEMA_VERSION,
-    incident_id: input.incident.id,
+    incident_id: incident.id,
     generated_at: iso(opts.now?.() ?? new Date()),
-    model: opts.llm.model,
-    severity: t.severity,
-    triage: { rules_fired: t.rules_fired, provisional: t.provisional },
+    triage: { basis: t.basis, rules_fired: t.rules_fired, provisional: t.provisional },
     verified: { value: verification.verified, status: verification.status, summary: verification.summary, evidence: verification.evidence },
-    fishbone: result.fishbone,
-    root_cause: result.root_cause,
-    confidence,
-    secondary_risks: result.secondary_risks,
-    next_checks: result.next_checks,
   };
 
-  const output =
-    'why_chain' in result
-      ? { ...shared, method: '5_whys' as const, why_chain: result.why_chain }
-      : {
-          ...shared,
-          method: 'board' as const,
-          board: { ...result.board, root_cause: result.root_cause, secondary_risks: result.secondary_risks.map((r) => r.risk) },
-        };
+  let output: unknown;
+  if (t.severity === 'small') {
+    output = { ...base, severity: 'small', level: 1, method: 'log', model: null, note: `${incident.title}: ${incident.description}` };
+  } else {
+    const a = await analyse(opts.llm, input, verification, t.severity, opts.signal);
+    const r = a.result;
+    const cause = {
+      model: opts.llm.model,
+      fishbone: r.fishbone,
+      root_cause: r.root_cause,
+      confidence: verification.verified ? r.confidence : Math.min(r.confidence, CONFIDENCE.unverifiedCap),
+      next_checks: r.next_checks,
+    };
+    output =
+      a.severity === 'medium'
+        ? { ...base, severity: 'medium', level: 2, method: 'fishbone', ...cause }
+        : {
+            ...base, severity: 'dangerous', level: 3, method: 'board', ...cause,
+            board: { ...a.result.board, root_cause: a.result.root_cause, further_harm: a.result.further_harm.map((h) => h.harm) },
+            further_harm: a.result.further_harm,
+          };
+  }
   // Final gate: Decision never receives an output that breaks the contract.
   return RcaOutputSchema.parse(output);
 }

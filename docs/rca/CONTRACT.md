@@ -1,6 +1,16 @@
-# RCA module contract (proposed, `rca/v1`)
+# RCA module contract (proposed, `rca/v2`)
 
 RCA is the root-cause step of the **Reasoning** stage: Perception → **Reasoning (RCA)** → Decision. The zod schemas in `web/lib/reasoning/rca/schema.ts` are the source of truth; this page explains them. Both contracts are **proposals** until the Perception, IoT and Decision owners accept them.
+
+The analysis follows the **3 RCA rules**, an escalation ladder by severity (see [PROGRESS.md](PROGRESS.md)):
+
+| Level | Severity | What RCA does | LLM? |
+|---|---|---|---|
+| 1 | `small` | Logs the incident with a note of what happened, plus the sensor check | No |
+| 2 | `medium` | Fishbone: why did it happen? Checks each cause category, names the root cause | Yes |
+| 3 | `dangerous` | Board chain: what happened → why → root cause → further harm, plus the fishbone | Yes |
+
+**Provisional** until the trainer confirms the thresholds: the level starts from `reported_severity` (Low → 1, Medium → 2, High → 3, none reported → 2). A lost-time injury, a fatality, or a sensor-confirmed reading past the severe line escalates to 3. Nothing lowers a level.
 
 ## How to call it
 
@@ -65,24 +75,40 @@ A sensor counts as evidence only if it measures the reported hazard. An alarm on
 
 ## Output: `RcaOutput` (to Decision)
 
+One of three shapes, selected by `method`. Each is strict: a level-1 log can't carry a fishbone, and a level-3 board can't lack further harm.
+
+**Every level:**
+
 | Field | Type | Set by |
 |---|---|---|
-| `schema_version` | `"rca/v1"` | code |
+| `schema_version` | `"rca/v2"` | code |
 | `incident_id` | string | code |
 | `generated_at` | ISO timestamp | code |
-| `model` | string, the LLM that wrote the analysis | code |
-| `severity` | `small` \| `dangerous` | code (triage rules) |
-| `triage` | `{ rules_fired: string[], provisional: boolean }` | code |
+| `severity` / `level` / `method` | `small` / `1` / `log` · `medium` / `2` / `fishbone` · `dangerous` / `3` / `board` | code (triage) |
+| `triage` | `{ basis, rules_fired: string[], provisional: boolean }`; `basis` says where the level started, e.g. "Reported Medium → medium" | code |
 | `verified` | `{ value, status: confirmed \| not_confirmed \| insufficient_data, summary, evidence[] }` | code (sensors) |
-| `method` | `5_whys` (small) \| `board` (dangerous) | code |
-| `why_chain` | string[3–7], small only | LLM |
-| `board` | `{ incident_occurred, why_it_happened, root_cause, circumstances[], secondary_risks[] }`, dangerous only | LLM; `root_cause` and `secondary_risks` copied from the top level by code |
-| `fishbone` | `{ Man, Machine, Method, Material, Measurement, Environment }: string[]` | LLM |
+
+**Level 1 (`log`) adds:** `model: null` and `note`, the incident's title and description.
+
+**Level 2 (`fishbone`) adds:**
+
+| Field | Type | Set by |
+|---|---|---|
+| `model` | string, the LLM that wrote the analysis | code |
+| `fishbone` | `{ Man, Machine, Method, Material, Measurement, Environment }: string[]`, at least one cause | LLM |
 | `root_cause` | string | LLM |
 | `confidence` | 0–1, capped at 0.5 when not sensor-confirmed | LLM, capped by code |
-| `secondary_risks` | `{ risk, likelihood: low \| medium \| high }[]` | LLM |
 | `next_checks` | string[], at least 1 | LLM |
+
+**Level 3 (`board`) adds everything in level 2, plus:**
+
+| Field | Type | Set by |
+|---|---|---|
+| `board` | `{ what_happened, why_it_happened, root_cause, further_harm: string[] }`, the chain in order | LLM; `root_cause` and `further_harm` copied from the top level by code |
+| `further_harm` | `{ harm, likelihood: low \| medium \| high }[]`, at least 1: what further harm this can cause (for the Predictive Risk Engine) | LLM |
 
 Each `evidence` item is `{ sensor_id, metric, observed, threshold, unit, from, to, breaches, severe, note }`. `observed` is the worst value seen. `breaches` means the threshold was crossed for at least 3 readings in a row.
 
-Guarantees for Decision: every output passes `RcaOutputSchema`. `verified.value` is true exactly when `status` is `confirmed`. A `dangerous` output always has a `board` and never a `why_chain`, and a `small` one the reverse.
+Guarantees for Decision: every output passes `RcaOutputSchema`. `verified.value` is true exactly when `status` is `confirmed`. `severity`, `level` and `method` always agree. In a board, `root_cause` and `further_harm` match the top-level fields.
+
+**Changes from `rca/v1`:** three levels instead of two; no 5 Whys (`why_chain` removed); `secondary_risks` and board `circumstances` replaced by `further_harm`; board field `incident_occurred` renamed `what_happened`; `triage.basis` and `level` added.
