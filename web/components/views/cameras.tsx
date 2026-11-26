@@ -6,7 +6,9 @@ import { BOX_COLOR } from '@/lib/camera/labels';
 import { cams, floorStats, machines, machineState, plan, sensors, type Cam, type Sev } from '@/lib/data';
 import { Spark, TINT } from '../figures';
 import { Card, Chip, cx, Dot, eyebrow, Foot, Icon, Legend, meta, Num, PageHead, Panel, SEV, Sq, Table, tile } from '../ui';
+import { useCamera } from '../camera/state';
 import { CameraBody, CameraHeaderStats, CameraHeaderTools } from './camera';
+import { LiveFeedsCard } from './camera/live-feeds';
 
 const BOX: Partial<Record<Sev, string>> = { High: BOX_COLOR.act, Medium: BOX_COLOR.watch, Low: BOX_COLOR.low };
 
@@ -71,10 +73,11 @@ function CameraTile({ cam }: { cam: Cam }) {
   );
 }
 
-function LiveTab() {
+function LiveTab({ onOpen }: { onOpen: (cameraId: string) => void }) {
   return (
     <Panel>
-      <Card tour="camera" title="Camera wall" sub="Every camera, live. Boxes are what the detector sees right now.">
+      <LiveFeedsCard onOpen={onOpen} />
+      <Card tour="camera" title="Camera wall" sub="Sample footage for the pilot preview, with example detection boxes.">
         <div className="grid grid-cols-4 gap-3.5 max-nav:grid-cols-3 max-compact:grid-cols-2">
           {cams.map((c) => <CameraTile key={c.id} cam={c} />)}
         </div>
@@ -160,6 +163,8 @@ function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
 
 export function CamerasView() {
   const [tab, setTab] = useState<Tab>('live');
+  const { selectCamera } = useCamera();
+  const openRecorded = (cameraId: string) => { selectCamera(cameraId); setTab('recorded'); };
   const live = tab === 'live';
 
   const tools: ReactNode = (
@@ -185,7 +190,7 @@ export function CamerasView() {
         tools={tools}
         aside={live ? undefined : <CameraHeaderStats />}
       />
-      {live ? <LiveTab /> : <CameraBody />}
+      {live ? <LiveTab onOpen={openRecorded} /> : <CameraBody />}
     </>
   );
 }

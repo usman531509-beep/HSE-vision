@@ -52,11 +52,13 @@ export const GUIDES: Guide[] = [
       { title: 'Watch the live wall', steps: ['Open the Live tab.', 'Every camera shows as a tile with detection boxes — red breaks a rule, amber is a warning, green is fine.', 'Sensors and the floor plan below cover the rest of the floor.'] },
       { title: 'Review a recorded event', steps: ['Open the Recorded analysis tab and pick a camera.', 'Select an event in the list; the video jumps to that moment.', 'Check the evidence frame, then Confirm or mark it a false alarm.'] },
       { title: 'Draw a restricted area', steps: ['In Recorded analysis, select Camera setup.', 'Click the picture to place at least three corners, name the area and Save.'] },
+      { title: 'Connect a live camera', steps: ['Open Camera setup and pick the camera.', 'Enter its stream address (rtsp://… from the camera or IT, a phone camera app\x27s http://… address, or 0 for a webcam) and select Test connection.', 'Select Save camera. The camera appears under Connected cameras on the Live tab, and clips with events are saved for review.'] },
       { title: 'Analyse a new video', steps: ['Select Upload video and choose an MP4, MOV or WebM up to 2 minutes.', 'When it finishes, people are boxed and entries and possible missing gear are listed.'] },
     ],
     tips: [
       'person-1, person-2 and so on are tracking numbers for one video only, not names.',
       'Missing gear shows as possible until a person confirms it; the camera angle can hide gear.',
+      'On the Live tab, Connected cameras are real streams; the camera wall below them is sample footage.',
     ],
   },
   {

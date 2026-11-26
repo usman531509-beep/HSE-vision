@@ -104,11 +104,28 @@ def normalise(source: Path, out: Path, sprite: Sprite, max_seconds: float) -> fl
     _ffmpeg("-i", str(source), "-an", "-vf", fit, "-c:v", "libx264", "-preset", "veryfast", "-crf", "26",
             "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(video))
     seconds = _probe_seconds(video)
+    thumbnails(video, out, sprite, seconds)
+    return seconds
+
+
+def thumbnails(video: Path, out: Path, sprite: Sprite, seconds: float) -> None:
+    """Poster frame and evidence-thumbnail sheet for a converted video."""
     _ffmpeg("-ss", f"{min(1.0, seconds / 2):.2f}", "-i", str(video), "-frames:v", "1", "-q:v", "4", str(out / "poster.jpg"))
     rows = max(1, math.ceil(math.ceil(seconds / sprite.step) / sprite.cols))
     _ffmpeg("-i", str(video), "-vf", f"fps=1/{sprite.step},scale={sprite.w}:{sprite.h},tile={sprite.cols}x{rows}",
             "-frames:v", "1", "-q:v", "5", str(out / "sprite.jpg"))
-    return seconds
+
+
+def letterbox(frame):
+    """Fits a camera frame into FRAME_W x FRAME_H with black bars, like normalise does for uploads."""
+    h, w = frame.shape[:2]
+    if (w, h) == (FRAME_W, FRAME_H):
+        return frame
+    scale = min(FRAME_W / w, FRAME_H / h)
+    nw, nh = round(w * scale), round(h * scale)
+    canvas = cv2.copyMakeBorder(cv2.resize(frame, (nw, nh)), (FRAME_H - nh) // 2, FRAME_H - nh - (FRAME_H - nh) // 2,
+                                (FRAME_W - nw) // 2, FRAME_W - nw - (FRAME_W - nw) // 2, cv2.BORDER_CONSTANT)
+    return canvas
 
 
 def count_frames(video: Path) -> int:

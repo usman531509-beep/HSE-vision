@@ -28,3 +28,13 @@ export const CONFIRM_OPTIONS: [number, string][] = [[6, '0.25 s'], [12, '0.5 s']
 
 /** Limits on a drawn restricted area. */
 export const ZONE_LIMITS = { minPoints: 3, maxPoints: 40, maxName: 60 } as const;
+
+/** Live camera stream addresses: RTSP or HTTP, or a webcam number on the analysis machine.
+    Keep in step with URL_PATTERN in vision-service/live.py. */
+export const STREAM = {
+  pattern: /^(rtsps?|https?):\/\/\S+$|^\d$/,
+  maxLength: 500,
+  problem: 'Use a stream address starting with rtsp:// or http://, or a webcam number such as 0.',
+  /** How often the Live view checks each camera's status. */
+  pollMs: 3000,
+} as const;
