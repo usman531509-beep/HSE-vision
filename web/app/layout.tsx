@@ -1,8 +1,5 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
-import { ConfirmProvider } from '@/components/confirm';
-import { AppShell } from '@/components/shell';
-import { HseProvider } from '@/components/state';
 import './globals.css';
 
 const inter = localFont({
@@ -21,11 +18,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen font-sans text-ink">
-        <HseProvider>
-          <ConfirmProvider>
-            <AppShell>{children}</AppShell>
-          </ConfirmProvider>
-        </HseProvider>
+        {children}
       </body>
     </html>
   );
