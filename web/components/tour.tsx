@@ -5,6 +5,8 @@ import { TOURS, type TourStep } from '@/lib/tour';
 import { btn, cx } from './ui';
 
 const SEEN = 'vhse-tour-seen:';
+/** Set when the user skips a tour: stop opening tours by themselves on every page. Guide still opens them. */
+const AUTO_OFF = 'vhse-tour-auto-off';
 const PAD = 8;
 type Rect = { top: number; left: number; width: number; height: number };
 
@@ -53,19 +55,23 @@ export function Tour({ page, open, onClose }: { page: string; open: boolean; onC
     try { localStorage.setItem(SEEN + page, '1'); } catch {}
     onClose();
   }, [page, onClose]);
+  const skip = useCallback(() => {
+    try { localStorage.setItem(AUTO_OFF, '1'); } catch {}
+    finish();
+  }, [finish]);
   const next = useCallback(() => (i < steps.length - 1 ? setI(i + 1) : finish()), [i, steps.length, finish]);
   const back = useCallback(() => setI((k) => Math.max(0, k - 1)), []);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') finish();
+      if (e.key === 'Escape') skip();
       else if (e.key === 'ArrowRight') next();
       else if (e.key === 'ArrowLeft') back();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, next, back, finish]);
+  }, [open, next, back, skip]);
 
   useEffect(() => { if (step) card.current?.focus({ preventScroll: true }); }, [step]);
 
@@ -103,7 +109,7 @@ export function Tour({ page, open, onClose }: { page: string; open: boolean; onC
       >
         <div className="flex items-center justify-between gap-3">
           <span className="text-[12px] font-medium text-muted tabular-nums">Step {i + 1} of {steps.length}</span>
-          <button type="button" onClick={finish} className="text-[12.5px] font-medium text-muted underline-offset-2 hover:text-ink hover:underline">Skip tour</button>
+          <button type="button" onClick={skip} title="Tours stop opening by themselves. Use Guide to open one." className="text-[12.5px] font-medium text-muted underline-offset-2 hover:text-ink hover:underline">Skip tour</button>
         </div>
         <h2 id="tour-title" className="mt-2 text-[16px] font-medium tracking-[-0.01em]">{step.title}</h2>
         <p id="tour-body" className="mt-1 text-[13.5px] leading-[1.5] text-ink-2">{step.body}</p>
@@ -121,11 +127,11 @@ export function Tour({ page, open, onClose }: { page: string; open: boolean; onC
   );
 }
 
-/** First visit to a page starts its tour once. */
+/** First visit to a page starts its tour once, unless the user has skipped a tour before. */
 export function useAutoTour(page: string, start: () => void) {
   useEffect(() => {
     let seen = false;
-    try { seen = localStorage.getItem(SEEN + page) === '1'; } catch {}
+    try { seen = localStorage.getItem(AUTO_OFF) === '1' || localStorage.getItem(SEEN + page) === '1'; } catch {}
     if (seen) return;
     const t = setTimeout(start, 900);
     return () => clearTimeout(t);

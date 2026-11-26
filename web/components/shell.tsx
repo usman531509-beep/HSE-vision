@@ -64,8 +64,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={() => set({ menuOpen: false })}
         />
       ) : null}
-      <Sidebar pathname={pathname} open={s.menuOpen} />
-      <Rail pathname={pathname} onMenu={() => set({ menuOpen: true })} />
+      <Sidebar current={page.nav} open={s.menuOpen} />
+      <Rail current={page.nav} onMenu={() => set({ menuOpen: true })} />
       <div className="relative min-w-0 flex-1 pb-10">
         <TopBar onMenu={() => set({ menuOpen: true })} onGuide={startTour} />
         <main>{children}</main>
@@ -85,7 +85,7 @@ function Brand() {
   );
 }
 
-function Sidebar({ pathname, open }: { pathname: string; open: boolean }) {
+function Sidebar({ current, open }: { current: string; open: boolean }) {
   return (
     <aside
       id="sidebar"
@@ -105,7 +105,7 @@ function Sidebar({ pathname, open }: { pathname: string; open: boolean }) {
         <p className="px-3 pb-1.5 text-[11.5px] font-medium text-soft">Menu</p>
         <ul className="flex flex-col gap-0.5">
           {PAGES.map((p) => {
-            const here = pathname === p.href;
+            const here = current === p.id;
             return (
               <li key={p.id}>
                 <Link
@@ -153,7 +153,7 @@ function Sidebar({ pathname, open }: { pathname: string; open: boolean }) {
  * Icon rail for mid widths (720–1100px, e.g. a split screen): the full sidebar is a drawer there,
  * so the rail keeps every screen one click away. The menu button opens the full drawer.
  */
-function Rail({ pathname, onMenu }: { pathname: string; onMenu: () => void }) {
+function Rail({ current, onMenu }: { current: string; onMenu: () => void }) {
   return (
     <aside className="sticky top-4 z-20 my-4 hidden h-[calc(100vh-2rem)] w-[64px] flex-none flex-col items-center gap-2 self-start rounded-lg bg-paper py-3 shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line compact:max-nav:flex">
       <Link href="/" aria-label="Visual HSE home" className="grid size-11 place-items-center rounded-[8px]">
@@ -167,7 +167,7 @@ function Rail({ pathname, onMenu }: { pathname: string; onMenu: () => void }) {
       <nav aria-label="Main (compact)" className="mt-1 flex w-full flex-1 flex-col items-center overflow-y-auto [scrollbar-width:none]">
         <ul className="flex flex-col gap-0.5">
           {PAGES.map((p) => {
-            const here = pathname === p.href;
+            const here = current === p.id;
             return (
               <li key={p.id}>
                 <Link

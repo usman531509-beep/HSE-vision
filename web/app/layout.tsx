@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import { ConfirmProvider } from '@/components/confirm';
 import { AppShell } from '@/components/shell';
 import { HseProvider } from '@/components/state';
 import './globals.css';
@@ -21,7 +22,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen font-sans text-ink">
         <HseProvider>
-          <AppShell>{children}</AppShell>
+          <ConfirmProvider>
+            <AppShell>{children}</AppShell>
+          </ConfirmProvider>
         </HseProvider>
       </body>
     </html>
