@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { audit, decisions, events, kpi, trend, waste, zones, type Range } from '@/lib/data';
+import { BigStat, DotColumns } from '../figures';
 import { openActions, useHse } from '../state';
 import {
   btn, Card, Cells, CheckRow, Chip, cx, Dot, eyebrow, Filters, Foot, Icon, Ico, KV, Kpis, Legend, link, list, lvl, lvlName,
@@ -15,16 +16,6 @@ function Pill({ children, tone }: { children: React.ReactNode; tone?: 'act' }) {
   return <span className={cx('inline-flex h-5 items-center gap-1.5 text-[11.5px] font-medium whitespace-nowrap before:size-2 before:rounded-[2px]', tone === 'act' ? 'text-act-ink before:bg-act' : 'text-low before:bg-low')}>{children}</span>;
 }
 
-/** A headline number in the page head: huge, light, with a small badge beside it. */
-function BigStat({ value, label, badge, title }: { value: number; label: string; badge: React.ReactNode; title: string }) {
-  return (
-    <div title={title} className="flex min-w-[112px] flex-col">
-      <span className="text-[56px] leading-none font-light tracking-[-0.035em] tabular-nums max-compact:text-[44px]">{value}</span>
-      <span className="mt-2 text-[13px] text-muted">{label}</span>
-      <span className="mt-1 flex h-6 items-center">{badge}</span>
-    </div>
-  );
-}
 const TOP_RULE = { act: 'before:bg-act', watch: 'before:bg-watch', low: 'before:bg-low', off: 'before:bg-off', info: 'before:bg-off' };
 
 /** Top five zones by score, ranked left to right. Severity is the top rule plus the spelled-out level. */
@@ -86,26 +77,12 @@ function Gauge({ risk }: { risk: number }) {
 function ShiftChart() {
   const peak = trend.reduce((m, t) => (t[1] > m[1] ? t : m));
   return (
-    <div>
-      <div className="relative grid grid-cols-8 gap-[5px]" role="img" aria-label={'Predicted risk by hour: ' + trend.map((t) => `${t[0]} ${t[1]}`).join(', ')}>
-        {trend.map((t) => {
-          const filled = Math.round(t[1] / 10);
-          return (
-            <div key={t[0]} title={`${t[0]} · ${t[1]}`} className="grid h-32 grid-rows-10 gap-0.5">
-              {Array.from({ length: 10 }, (_, k) => {
-                const r = 9 - k, level = (r + 1) * 10;
-                const on = r < filled;
-                return <span key={r} className={cx('mx-auto aspect-square h-full rounded-[2px]', !on ? 'bg-track' : level > 70 ? 'bg-act' : level > 40 ? 'bg-watch' : 'bg-teal')} />;
-              })}
-            </div>
-          );
-        })}
-        <i className="pointer-events-none absolute -inset-x-1 top-[calc(30%-1px)] border-t border-dashed border-act" />
-      </div>
-      <div className="mt-1.5 grid grid-cols-8 gap-[5px] text-center text-[11.5px] text-muted tabular-nums">
-        {trend.map((t) => <span key={t[0]} className={t === peak ? 'font-semibold text-ink' : ''}>{t[0].slice(0, 2)}</span>)}
-      </div>
-    </div>
+    <DotColumns
+      cols={trend.map((t) => ({ key: t[0], value: t[1], tick: t[0].slice(0, 2), strong: t === peak }))}
+      rowClass={(level) => (level > 70 ? 'bg-act' : level > 40 ? 'bg-watch' : 'bg-teal')}
+      lines={[{ value: 70, className: 'border-act' }]}
+      label={'Predicted risk by hour: ' + trend.map((t) => `${t[0]} ${t[1]}`).join(', ')}
+    />
   );
 }
 
