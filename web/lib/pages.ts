@@ -1,5 +1,5 @@
 import {
-  BookOpen, Box, Cctv, ChartColumn, ClipboardCheck, FileLock2, Files, GraduationCap, LayoutDashboard, ListTodo, Mic, ScanEye, ShieldAlert, ShieldCheck, Thermometer, TriangleAlert, type LucideIcon,
+  BookOpen, Box, Cctv, ChartColumn, ClipboardCheck, FileLock2, Files, GraduationCap, LayoutDashboard, ListTodo, MessageSquareText, Mic, ScanEye, ShieldAlert, ShieldCheck, Thermometer, TriangleAlert, type LucideIcon,
 } from 'lucide-react';
 import type { Tone } from './data';
 
@@ -7,6 +7,7 @@ export interface PageDef { id: string; href: string; nav: string; title: string;
 
 export const PAGES: PageDef[] = [
   { id: 'control', href: '/', nav: 'Overview', title: 'Control room', icon: LayoutDashboard },
+  { id: 'ask', href: '/ask', nav: 'Ask IonHSE', title: 'Ask IonHSE', icon: MessageSquareText },
   { id: 'live', href: '/live', nav: 'Live floor', title: 'Live floor', icon: Cctv },
   { id: 'camera', href: '/camera', nav: 'Camera analysis', title: 'Camera analysis', icon: ScanEye },
   { id: 'voice', href: '/voice', nav: 'Voice reporting', title: 'Voice reporting', icon: Mic, count: ['2', 'watch'] },
