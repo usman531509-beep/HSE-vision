@@ -42,9 +42,9 @@ export const TOURS: Record<string, TourStep[]> = {
     { target: 'shell-bell', title: 'Notifications', body: 'High-severity events that need you. The red dot means something is unread.' },
     { target: 'shell-guide', title: 'Replay this guide', body: 'Open the guide again on any page to tour that page’s modules. For step-by-step help, open User guide in the sidebar.' },
   ],
-  live: [
-    HEAD('Live floor', 'What every camera and sensor sees right now, zone by zone.'),
-    { target: 'camera', title: 'Camera view', body: 'The selected camera with its detections drawn on the picture. Pick another camera from the list below the view.' },
+  cameras: [
+    HEAD('Cameras', 'Two tabs: a Live wall of every camera now, and Recorded analysis for uploaded clips.'),
+    { target: 'camera', title: 'Camera wall', body: 'Every camera as a live tile, with detection boxes for what each one sees. Red breaks a rule, amber is a warning, green is fine.' },
     { target: 'plan', title: 'Floor plan', body: 'Each zone coloured by its risk level, with the number of people in it now.' },
     { target: 'sensors', title: 'Sensors', body: 'Power, compressed air, temperature, gas and vibration, with the last 12 readings as a trend.' },
     { target: 'machines', title: 'Machines', body: 'State of every machine: running, stopped, idle or locked out.' },
