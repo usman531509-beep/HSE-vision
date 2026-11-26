@@ -1,8 +1,8 @@
 /* Shared building blocks: icons, status words, cell bars, cards, KPI strip, tables. */
 import type { ReactNode } from 'react';
 import {
-  Activity, ArrowRight, Bell, Camera, CircleHelp, ChartColumn, Check, Clock, Download, Eye, Factory, FileText, GraduationCap,
-  LayoutGrid, List, Lock, Menu, Plus, RefreshCw, Search, ShieldCheck, SquareCheckBig, Thermometer, TriangleAlert, X,
+  Activity, ArrowRight, Bell, Camera, CircleHelp, ChartColumn, Check, Clock, Download, Eye, Factory, FileText, Files, GraduationCap,
+  History, LayoutGrid, List, Lock, Menu, Mic, Pencil, Plus, RefreshCw, Search, ShieldCheck, SquareCheckBig, Thermometer, TriangleAlert, X,
   type LucideIcon,
 } from 'lucide-react';
 import type { CheckState, Sev, Tone } from '@/lib/data';
@@ -17,6 +17,7 @@ const ICON = {
   shield: ShieldCheck, cap: GraduationCap, bars: ChartColumn, factory: Factory, clock: Clock, bell: Bell,
   search: Search, send: ArrowRight, menu: Menu, plus: Plus, check: Check, x: X, thermo: Thermometer,
   activity: Activity, help: CircleHelp, refresh: RefreshCw, download: Download, file: FileText, camera: Camera,
+  mic: Mic, files: Files, history: History, pencil: Pencil,
 } satisfies Record<string, LucideIcon>;
 export type IconName = keyof typeof ICON;
 

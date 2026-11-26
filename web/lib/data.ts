@@ -283,3 +283,149 @@ export const routines: [string, string][] = [
   ['Weekly digest to leadership', 'Mondays at 08:00'],
   ['Monthly management report', 'First working day of the month'],
 ];
+
+/* ---------- Voice reporting ---------- */
+export const voiceKpis: Kpi[] = [
+  ['Voice reports today', '14', '', '11 spoken in Urdu'],
+  ['Average time to log', '38', 'sec', 'about 6 min on paper'],
+  ['Fields auto-filled', '5 of 6', '', 'location from the zone tag'],
+  ['Waiting for approval', '2', '', 'both near-miss'],
+];
+/** Transcript, revealed line by line while "recording". */
+export const voiceTranscript: string[] = [
+  'Main Zone 4 packing mein hoon.',
+  'Do workers ke paas gloves nahi hain, pellets abhi garam hain.',
+  'Kisi ko chot nahi lagi, lekin ye near-miss hai.',
+  'Gloves station 4B par bhej dein please.',
+];
+/** The fields the copilot pulls out of the speech, each with a confidence. */
+export const voiceDraft: { field: string; value: string; conf: number; tone?: Tone }[] = [
+  { field: 'Type', value: 'Near-miss', conf: 98 },
+  { field: 'Location', value: 'Zone 4 · Packing', conf: 95 },
+  { field: 'Hazard', value: 'Missing gloves near hot pellets', conf: 91 },
+  { field: 'Severity', value: 'Medium', conf: 88, tone: 'watch' },
+  { field: 'Reported by', value: 'Imran R. · voice', conf: 99 },
+  { field: 'Time', value: '18:46 · Shift B', conf: 100 },
+];
+/** [time, reporter, language, summary, severity] */
+export const voiceLog: [string, string, string, string, Sev][] = [
+  ['18:46', 'Imran R.', 'Urdu', 'Missing gloves near hot pellets, Zone 4', 'Medium'],
+  ['18:12', 'Sana M.', 'English', 'Oil film on the walkway, Dock 1', 'Medium'],
+  ['17:50', 'Bilal K.', 'Urdu', 'Guard feels loose on Press 1', 'High'],
+  ['17:22', 'Ayesha N.', 'Urdu', 'Forklift reversing with no beeper', 'Medium'],
+  ['16:40', 'Zain A.', 'English', 'Spilled granules near conveyor 7', 'Low'],
+];
+
+/* ---------- Hazard ID & risk assessment (HIRA) ---------- */
+export const hiraKpis: Kpi[] = [
+  ['Assessments', '24', '', '4 due for review'],
+  ['High residual risk', '3', '', 'after controls'],
+  ['Review overdue', '1', '', 'Blow-molding HIRA'],
+  ['Controls in place', '52 of 68', '', 'across all tasks'],
+];
+export const CONTROL_LAYERS = ['Elimination', 'Substitution', 'Engineering', 'Administrative', 'PPE'] as const;
+export type ControlLayer = (typeof CONTROL_LAYERS)[number];
+export interface Control { layer: ControlLayer; text: string; done: boolean }
+export interface Hira {
+  id: string; task: string; area: string; hazard: string; who: string;
+  /** Initial and residual risk, each likelihood × severity on a 1–5 scale. */
+  l0: number; s0: number; l1: number; s1: number;
+  controls: Control[];
+  review: string; reviewSev: Sev; link: string;
+}
+export const hiras: Hira[] = [
+  { id: 'HIRA-01', task: 'Blow-molding machine setup & clearing jams', area: 'Press 3', who: 'Machine operators',
+    hazard: 'Entanglement or crush from the moving press while reaching in to clear a jam.',
+    l0: 4, s0: 5, l1: 2, s1: 5,
+    controls: [
+      { layer: 'Engineering', text: 'Interlocked guard stops the press when opened', done: true },
+      { layer: 'Engineering', text: 'Lockout–tagout before any reach-in', done: true },
+      { layer: 'Administrative', text: 'Jam-clearing SOP and refresher training', done: false },
+      { layer: 'PPE', text: 'Cut-resistant gloves', done: true },
+    ],
+    review: 'Overdue', reviewSev: 'High', link: 'Permit PTW-2213 · Action ACT-0412' },
+  { id: 'HIRA-02', task: 'Molten polymer handling at the melt tank', area: 'Tank B', who: 'Process technicians',
+    hazard: 'Burns from contact with molten polymer or hot surfaces above 200 °C.',
+    l0: 3, s0: 4, l1: 2, s1: 4,
+    controls: [
+      { layer: 'Engineering', text: 'Insulated jackets on hot lines', done: true },
+      { layer: 'Administrative', text: 'Cooling-loop check every hour', done: true },
+      { layer: 'PPE', text: 'Heat-resistant gauntlets and face shield', done: true },
+    ],
+    review: 'Due in 12 days', reviewSev: 'Medium', link: 'SOP SOP-104 · melt handling' },
+  { id: 'HIRA-03', task: 'Forklift movement around pedestrians', area: 'Dock 1', who: 'Drivers, floor crew',
+    hazard: 'Collision between a forklift and a pedestrian at the loading dock.',
+    l0: 4, s0: 4, l1: 2, s1: 4,
+    controls: [
+      { layer: 'Engineering', text: 'Marked walkway separated by barriers', done: true },
+      { layer: 'Engineering', text: 'Proximity alert and speed limiter on trucks', done: false },
+      { layer: 'Administrative', text: 'One-way route and a banksman at busy times', done: true },
+      { layer: 'PPE', text: 'High-visibility vests', done: true },
+    ],
+    review: 'Current', reviewSev: 'Low', link: 'Action ACT-0377 · floor marking' },
+  { id: 'HIRA-04', task: 'Tank entry for cleaning', area: 'Tank B', who: 'Confined-space team',
+    hazard: 'Asphyxiation or exposure to residual vapour inside the tank.',
+    l0: 3, s0: 5, l1: 1, s1: 5,
+    controls: [
+      { layer: 'Elimination', text: 'Clean in place where the tank design allows', done: false },
+      { layer: 'Engineering', text: 'Forced ventilation and continuous gas monitoring', done: true },
+      { layer: 'Administrative', text: 'Confined-space permit and standby rescue', done: true },
+      { layer: 'PPE', text: 'Supplied-air respirator and harness', done: true },
+    ],
+    review: 'Current', reviewSev: 'Low', link: 'Permit PTW-2209 · confined space' },
+  { id: 'HIRA-05', task: 'Manual handling of finished cartons', area: 'Zone 4 · Packing', who: 'Packing crew',
+    hazard: 'Back and shoulder strain from repetitive lifting of heavy cartons.',
+    l0: 4, s0: 2, l1: 2, s1: 2,
+    controls: [
+      { layer: 'Substitution', text: 'Lighter carton size on fast lines', done: true },
+      { layer: 'Engineering', text: 'Height-adjustable packing benches and a lift assist', done: false },
+      { layer: 'Administrative', text: 'Job rotation and manual-handling training', done: true },
+    ],
+    review: 'Due in 3 days', reviewSev: 'Medium', link: 'Training TRN-18 · manual handling' },
+];
+
+/* ---------- SOP & document control ---------- */
+export const sopKpis: Kpi[] = [
+  ['Controlled documents', '142', '', 'in 6 categories'],
+  ['Up to date', '128', '', '90% of the library'],
+  ['Review overdue', '5', '', '3 SOPs, 2 SDS'],
+  ['Read & understood', '87', '%', 'this shift’s crew'],
+];
+export type DocStatus = 'Published' | 'Under review' | 'Draft' | 'Overdue';
+export const docStatusSev: Record<DocStatus, Sev> = { Published: 'Low', 'Under review': 'Medium', Draft: 'Info', Overdue: 'High' };
+export const docCats = ['All', 'SOP', 'Safety data sheet', 'Method statement', 'Policy', 'Emergency'] as const;
+export type DocCat = (typeof docCats)[number];
+export interface Doc {
+  id: string; title: string; cat: Exclude<DocCat, 'All'>; version: string;
+  owner: string; status: DocStatus; review: string;
+  ackDone: number; ackTotal: number;
+  /** Author → Reviewer → Approver sign-off. */
+  chain: [string, string, CheckState][];
+  areas: string; history: [string, string][];
+}
+export const docs: Doc[] = [
+  { id: 'SOP-104', title: 'Molten polymer handling', cat: 'SOP', version: 'v3.1', owner: 'Laiba Fatima',
+    status: 'Published', review: 'Review Mar 2027', ackDone: 18, ackTotal: 20,
+    chain: [['Author', 'S. Mir', 'ok'], ['Reviewer', 'HSE lead', 'ok'], ['Approver', 'Plant manager', 'ok']],
+    areas: 'Tank B · melt line', history: [['v3.1', 'Added hourly cooling-loop check · today'], ['v3.0', 'Reformatted to new template · Aug 2026'], ['v2.4', 'Updated PPE section · Feb 2026']] },
+  { id: 'SOP-071', title: 'Press jam clearing & lockout', cat: 'SOP', version: 'v2.0', owner: 'Imran Raza',
+    status: 'Overdue', review: 'Review was due 10 Nov', ackDone: 9, ackTotal: 16,
+    chain: [['Author', 'I. Raza', 'ok'], ['Reviewer', 'HSE lead', 'wait'], ['Approver', 'Plant manager', 'no']],
+    areas: 'Press 1–3', history: [['v2.0', 'Linked to HIRA-01 · Jun 2026'], ['v1.3', 'Added interlock step · 2025']] },
+  { id: 'SDS-220', title: 'HDPE resin — safety data sheet', cat: 'Safety data sheet', version: 'v1.2', owner: 'Supplier · PetroChem',
+    status: 'Published', review: 'Review Jan 2027', ackDone: 20, ackTotal: 20,
+    chain: [['Author', 'Supplier', 'ok'], ['Reviewer', 'HSE lead', 'ok'], ['Approver', 'Plant manager', 'ok']],
+    areas: 'Intake · all molders', history: [['v1.2', 'New supplier revision · Sep 2026'], ['v1.1', 'Added spill section · 2025']] },
+  { id: 'MS-033', title: 'Confined-space tank entry method statement', cat: 'Method statement', version: 'v2.2', owner: 'Bilal Khan',
+    status: 'Under review', review: 'In review with HSE lead', ackDone: 6, ackTotal: 8,
+    chain: [['Author', 'B. Khan', 'ok'], ['Reviewer', 'HSE lead', 'wait'], ['Approver', 'Plant manager', 'wait']],
+    areas: 'Tank B', history: [['v2.2', 'Added rescue plan · this week'], ['v2.1', 'Gas-test frequency · Jul 2026']] },
+  { id: 'POL-002', title: 'Health & safety policy', cat: 'Policy', version: 'v4.0', owner: 'Plant manager',
+    status: 'Published', review: 'Review Dec 2026', ackDone: 142, ackTotal: 160,
+    chain: [['Author', 'HSE lead', 'ok'], ['Reviewer', 'Legal', 'ok'], ['Approver', 'Director', 'ok']],
+    areas: 'Site-wide', history: [['v4.0', 'Annual review signed · Jan 2026'], ['v3.0', 'ISO 45001 alignment · 2024']] },
+  { id: 'EMG-011', title: 'Emergency evacuation & assembly plan', cat: 'Emergency', version: 'v3.0', owner: 'Ayesha Noor',
+    status: 'Overdue', review: 'Drill log due 15 Nov', ackDone: 120, ackTotal: 160,
+    chain: [['Author', 'A. Noor', 'ok'], ['Reviewer', 'HSE lead', 'ok'], ['Approver', 'Plant manager', 'wait']],
+    areas: 'Site-wide', history: [['v3.0', 'New assembly point map · May 2026'], ['v2.5', 'Added night-shift roster · 2025']] },
+];

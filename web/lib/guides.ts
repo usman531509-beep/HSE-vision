@@ -99,12 +99,30 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
+    id: 'voice', title: 'Voice reporting', href: '/voice',
+    summary: 'Report a hazard or near-miss by speaking, in Urdu or English. The copilot transcribes it and drafts a report.',
+    tasks: [
+      { title: 'Record a report', steps: ['Choose Urdu or English.', 'Press the mic and speak what you saw.', 'Press again to stop. The words appear as you speak.'] },
+      { title: 'Approve the draft', steps: ['Check the fields the copilot pulled out — type, location, hazard and severity.', 'Select Approve and file, or Edit first. Nothing is filed until a person approves it.'] },
+    ],
+    tips: ['Filed reports move to Incidents.'],
+  },
+  {
     id: 'incidents', title: 'Incidents & near-misses', href: '/incidents',
     summary: 'Every incident from first report to a filed investigation.',
     tasks: [
       { title: 'Review an investigation', steps: ['Pick an incident from This month.', 'Read the likely causes and the standard clauses involved.', 'Check the drafted report.'] },
       { title: 'Approve and file', steps: ['Read the draft and correct anything that is wrong.', 'Select Approve and file. Nothing is filed until a person approves it.'] },
     ],
+  },
+  {
+    id: 'hira', title: 'Hazard ID & risk assessment', href: '/hira',
+    summary: 'A structured HIRA for each task: the hazard, the risk score, the controls, and the risk that is left after them.',
+    tasks: [
+      { title: 'Read an assessment', steps: ['Pick a task from the list, ranked by the risk left after controls.', 'On the matrix, “Was” is the risk before controls and “Now” is what is left.', 'Read the controls, from elimination down to PPE.'] },
+      { title: 'Review a HIRA', steps: ['Open an assessment marked Overdue or Due.', 'Select Review now to re-score it with the latest controls.'] },
+    ],
+    tips: ['Controls here feed the checks in Permits & lockout.'],
   },
   {
     id: 'permits', title: 'Permits & lockout', href: '/permits',
@@ -139,6 +157,15 @@ export const GUIDES: Guide[] = [
       { title: 'Check a standard', steps: ['Choose a standard at the top, such as ISO 45001.', 'Read the clause-by-clause table.', 'Turn on gaps only to see what is missing.'] },
       { title: 'Close a gap', steps: ['Open Missing evidence.', 'Each gap links to a follow-up action. Complete the action to close it.'] },
     ],
+  },
+  {
+    id: 'sop', title: 'SOP & document control', href: '/sop',
+    summary: 'One controlled library for SOPs, method statements, policies and safety data sheets, each with a version and a read trail.',
+    tasks: [
+      { title: 'Find a document', steps: ['Filter the library by category.', 'Select a document to see its version, owner and approval chain.'] },
+      { title: 'Acknowledge a document', steps: ['Open the document.', 'Select Acknowledge to record that you have read and understood it.'] },
+    ],
+    tips: ['Documents overdue for review are shown in red.'],
   },
   {
     id: 'training', title: 'Training', href: '/training',

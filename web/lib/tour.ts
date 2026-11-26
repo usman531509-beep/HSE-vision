@@ -4,6 +4,21 @@ export interface TourStep { target: string; title: string; body: string }
 const HEAD = (title: string, body: string): TourStep => ({ target: 'head', title, body });
 
 export const TOURS: Record<string, TourStep[]> = {
+  voice: [
+    HEAD('Voice reporting', 'Workers report a hazard by speaking, in Urdu or English, instead of filling a form on paper.'),
+    { target: 'kpis', title: 'Why it helps', body: 'A spoken report is logged in seconds, not minutes, and most of the fields are filled in for the worker.' },
+    { target: 'record', title: 'Speak, then review', body: 'Press to talk. The copilot transcribes the words, pulls out the type, location, hazard and severity, and drafts a report a person approves before it is filed.' },
+  ],
+  hira: [
+    HEAD('Hazard ID & risk assessment', 'A structured HIRA for every task: the hazard, the risk score, the controls, and the risk that is left.'),
+    { target: 'kpis', title: 'What to watch', body: 'How many assessments are high risk after controls, and which are overdue for review.' },
+    { target: 'assess', title: 'Risk matrix & controls', body: 'The grid is likelihood × severity. “Was” is the risk before controls; “Now” is what is left after them. Controls follow the hierarchy, from elimination down to PPE.' },
+  ],
+  sop: [
+    HEAD('SOP & document control', 'One controlled library for SOPs, method statements, policies and safety data sheets.'),
+    { target: 'kpis', title: 'What to watch', body: 'How much of the library is up to date, what is overdue for review, and how much of the crew has read it.' },
+    { target: 'doc', title: 'Each document', body: 'Version, owner, the approval chain, and a read-and-understood trail. The current version is marked, with its full history below.' },
+  ],
   control: [
     HEAD('Control room', 'Your start page. It shows how safe the site is right now and what needs a decision first.'),
     { target: 'shell-nav', title: 'Modules', body: 'Every module is one click away. Red and lime badges count open items, such as incidents waiting for review.' },
