@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 import {
   Activity, ArrowRight, Bell, Camera, CircleHelp, ChartColumn, Check, Clock, Download, Eye, Factory, FileText, GraduationCap,
-  LayoutGrid, List, Lock, Menu, Plus, RefreshCw, Search, ShieldCheck, SquareCheckBig, Thermometer, TriangleAlert, X,
+  LayoutGrid, List, Lock, Menu, Pause, Play, Plus, RefreshCw, RotateCcw, RotateCw, Search, ShieldCheck, SquareCheckBig, Thermometer, TriangleAlert, Undo2, Upload, X,
   type LucideIcon,
 } from 'lucide-react';
 import type { CheckState, Sev, Tone } from '@/lib/data';
@@ -17,6 +17,7 @@ const ICON = {
   shield: ShieldCheck, cap: GraduationCap, bars: ChartColumn, factory: Factory, clock: Clock, bell: Bell,
   search: Search, send: ArrowRight, menu: Menu, plus: Plus, check: Check, x: X, thermo: Thermometer,
   activity: Activity, help: CircleHelp, refresh: RefreshCw, download: Download, file: FileText, camera: Camera,
+  play: Play, pause: Pause, back: RotateCcw, forward: RotateCw, undo: Undo2, upload: Upload,
 } satisfies Record<string, LucideIcon>;
 export type IconName = keyof typeof ICON;
 
@@ -168,14 +169,15 @@ export function Legend({ children }: { children: ReactNode }) {
 }
 
 /* ---------- buttons, filters ---------- */
-const btnBase = 'inline-flex items-center justify-center gap-[7px] whitespace-nowrap rounded-[8px] border border-transparent font-medium transition-colors duration-150 ease-out [&>span]:size-4';
-export function btn(kind: 'dark' | 'light' | 'ok', size: 'md' | 'sm' = 'md') {
+const btnBase = 'inline-flex items-center justify-center gap-[7px] whitespace-nowrap rounded-[8px] border border-transparent font-medium transition-colors duration-150 ease-out disabled:opacity-40 [&>span]:size-4';
+export function btn(kind: 'dark' | 'light' | 'ok' | 'danger', size: 'md' | 'sm' = 'md') {
   return cx(
     btnBase,
     size === 'sm' ? 'h-8 px-3.5 text-[12.5px]' : 'h-11 px-5 text-[13px]',
     kind === 'dark' && 'bg-accent text-paper hover:bg-accent-2',
     kind === 'light' && 'bg-paper text-ink shadow-[0_1px_2px_rgb(0_0_0/0.05)] ring-1 ring-line hover:bg-sunk',
     kind === 'ok' && 'bg-lime text-lime-ink',
+    kind === 'danger' && 'bg-act text-paper hover:bg-act-ink',
   );
 }
 export const link = 'text-[13px] font-medium text-ink underline decoration-line-2 underline-offset-4 hover:decoration-ink';
@@ -184,6 +186,9 @@ export const link = 'text-[13px] font-medium text-ink underline decoration-line-
 export const segWrap = 'inline-flex gap-0.5 rounded-[8px] bg-paper p-1 ring-1 ring-line';
 export const segBtn =
   'h-9 whitespace-nowrap rounded-[8px] px-4 text-[12.5px] text-ink-2 hover:bg-sunk aria-pressed:bg-ink aria-pressed:text-paper aria-pressed:hover:bg-ink aria-selected:bg-ink aria-selected:text-paper aria-selected:hover:bg-ink';
+
+/** A pressable chip; aria-pressed shows it on. */
+export const chipBtn = 'h-8 rounded-[8px] bg-paper px-3.5 text-[12.5px] font-medium text-ink-2 ring-1 ring-line hover:bg-sunk aria-pressed:bg-ink aria-pressed:text-paper aria-pressed:ring-ink';
 
 /** Filter chips. */
 export function Filters<T extends string>({ label, options, value, onChange }: {
@@ -199,7 +204,7 @@ export function Filters<T extends string>({ label, options, value, onChange }: {
             type="button"
             aria-pressed={value === v}
             onClick={() => onChange(v)}
-            className="h-8 rounded-[8px] bg-paper px-3.5 text-[12.5px] font-medium text-ink-2 ring-1 ring-line hover:bg-sunk aria-pressed:bg-ink aria-pressed:text-paper aria-pressed:ring-ink"
+            className={chipBtn}
           >
             {text}
           </button>

@@ -64,7 +64,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={() => set({ menuOpen: false })}
         />
       ) : null}
-      <Sidebar pathname={pathname} open={s.menuOpen} />
+      <Sidebar current={page.nav} open={s.menuOpen} />
       <div className="relative min-w-0 flex-1 pb-10">
         <TopBar onMenu={() => set({ menuOpen: true })} onGuide={startTour} />
         <main>{children}</main>
@@ -84,7 +84,7 @@ function Brand() {
   );
 }
 
-function Sidebar({ pathname, open }: { pathname: string; open: boolean }) {
+function Sidebar({ current, open }: { current: string; open: boolean }) {
   return (
     <aside
       id="sidebar"
@@ -104,7 +104,7 @@ function Sidebar({ pathname, open }: { pathname: string; open: boolean }) {
         <p className="px-3 pb-1.5 text-[11.5px] font-medium text-soft">Menu</p>
         <ul className="flex flex-col gap-0.5">
           {PAGES.map((p) => {
-            const here = pathname === p.href;
+            const here = current === p.id;
             return (
               <li key={p.id}>
                 <Link
