@@ -44,5 +44,7 @@ export function peakHour(day: number): number {
   return hours.reduce((m, h) => (forecastWbgt(h) > forecastWbgt(m) ? h : m));
 }
 
+/** WBGT to the 0.1 °C it is shown at, so a band is always judged on the number people see. */
+export const roundWbgt = (v: number): number => Math.round(v * 10) / 10;
 export const fmtWbgt = (v: number): string => v.toFixed(1);
 export const fmtHour = (h: number): string => `${String(Math.floor(h) % 24).padStart(2, '0')}:00`;
