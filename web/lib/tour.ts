@@ -89,6 +89,7 @@ export const TOURS: Record<string, TourStep[]> = {
     { target: 'heat-crew', title: 'Crew guidance', body: 'Work and rest minutes per hour from the hottest sensor, using ACGIH limits for moderate work, and how far it is from the next limit.' },
     { target: 'heat-map', title: 'Heat-risk map', body: 'Every area and shift with its score. Select a cell to see how it was built from heat, planned work and past incidents.' },
     { target: 'heat-briefing', title: 'Heat briefing', body: 'Each planned job at risk with a suggested change, such as moving it to a cooler shift. Approve or decline each one.' },
+    { target: 'heat-outlook', title: '7-day heat outlook', body: 'Predicted peak WBGT and risk for every area, a week ahead. From the live weather forecast for the site. Pick a day to see each area and when heavy work fits.' },
     { target: 'heat-forecast', title: 'Heat through the day', body: 'Hourly WBGT forecast with the work-rest and stop-work lines.' },
     { target: 'heat-ask', title: 'Shade, the heat agent', body: 'Ask in plain words or tap a suggestion. Shade answers from the same live scores, sensors and forecast as the page.' },
     { target: 'heat-measures', title: 'Pilot measures', body: 'Accuracy, adoption and outcome: how the four-week pilot is judged.' },

@@ -61,6 +61,16 @@ export function heatPart(wbgt: number): number {
   return Math.round(clamp(((wbgt - HEAT_RANGE.floor) / (HEAT_RANGE.ceil - HEAT_RANGE.floor)) * 100));
 }
 
+/** Score from a WBGT and the work planned in an area. Shared by the shift grid and the 7-day outlook. */
+export function scoreFrom(area: HeatArea, wbgt: number, here: Job[] = []): Pick<Cell, 'parts' | 'score'> {
+  const parts = {
+    heat: heatPart(wbgt),
+    work: Math.round(Math.max(area.routine, ...here.map(jobExposure))),
+    history: clamp(area.heatEvents * HISTORY_PER_EVENT),
+  };
+  return { parts, score: Math.round(parts.heat * WEIGHTS.heat + parts.work * WEIGHTS.work + parts.history * WEIGHTS.history) };
+}
+
 export function scoreCell(area: HeatArea, day: DayIndex, shift: Shift, live: LiveReadings): Cell {
   const time = slotTime(day, shift);
   const hours = slotHours(day, shift, time);
@@ -72,12 +82,7 @@ export function scoreCell(area: HeatArea, day: DayIndex, shift: Shift, live: Liv
   const wbgt = useSensor ? sensor : predicted;
 
   const here = jobs.filter((j) => j.area === area.zone && j.day === day && j.shift === shift.id);
-  const parts = {
-    heat: heatPart(wbgt),
-    work: Math.round(Math.max(area.routine, ...here.map(jobExposure))),
-    history: clamp(area.heatEvents * HISTORY_PER_EVENT),
-  };
-  const score = Math.round(parts.heat * WEIGHTS.heat + parts.work * WEIGHTS.work + parts.history * WEIGHTS.history);
+  const { parts, score } = scoreFrom(area, wbgt, here);
   return { area, day, shift, time, wbgt, peakHour, source: useSensor ? 'sensor' : 'forecast', parts, score, jobs: here };
 }
 

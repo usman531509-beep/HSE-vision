@@ -41,11 +41,12 @@ export function Stat({ label, value, unit, size = 'md', className }: { label: st
 const TICKS = 18;
 
 /** A row of thin vertical ticks, the share n / total of them coloured: progress at a glance. */
-export function TickBar({ n, total, tone, ticks = TICKS, className }: { n: number; total: number; tone: Tone | 'ink'; ticks?: number; className?: string }) {
+/** `className` replaces the default height rather than adding to it: two height classes would conflict. */
+export function TickBar({ n, total, tone, ticks = TICKS, className = 'h-11' }: { n: number; total: number; tone: Tone | 'ink'; ticks?: number; className?: string }) {
   const on = tone === 'ink' ? 'bg-ink' : FILL[tone];
   const lit = total > 0 ? Math.round((n / total) * ticks) : 0;
   return (
-    <div className={cx('flex h-11 items-stretch justify-between', className)} aria-hidden="true">
+    <div className={cx('flex items-stretch justify-between', className)} aria-hidden="true">
       {Array.from({ length: ticks }, (_, i) => <span key={i} className={cx('w-[2px] rounded-[1px]', i < lit ? on : 'bg-line-2')} />)}
     </div>
   );

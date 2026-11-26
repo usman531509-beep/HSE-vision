@@ -13,6 +13,7 @@ import { HeatAgent } from './agent';
 import { Briefing } from './briefing';
 import { DataFlow } from './flow';
 import { HeatForecast } from './forecast';
+import { HeatOutlook } from './outlook';
 import { PilotMeasures } from './measures';
 import { RiskMap } from './risk-map';
 import { SensorBoard } from './widgets/board';
@@ -56,6 +57,7 @@ export function HeatView() {
       <Panel>
         <DataFlow feed={feed} grid={grid} advice={advice} />
         <SensorBoard feed={feed} pending={pending} />
+        <HeatOutlook />
         <div className={twoCols}>
           <HeatForecast />
           <PilotMeasures jobs={advice.length} />

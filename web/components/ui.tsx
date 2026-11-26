@@ -86,8 +86,10 @@ export function Num({ value, unit, className }: { value: ReactNode; unit?: strin
 }
 
 export const meta = 'text-[12.5px] text-muted';
+/** The soft lift of a card: also marks a selected tile inside one. */
+export const lift = 'shadow-[0_1px_2px_rgb(0_0_0/0.04),0_10px_30px_-14px_rgb(0_0_0/0.10)]';
 /** White, rounded, softly lifted surface used by every card. */
-export const card = 'flex min-w-0 scroll-mt-24 flex-col gap-4 rounded-lg bg-paper p-5 shadow-[0_1px_2px_rgb(0_0_0/0.04),0_10px_30px_-14px_rgb(0_0_0/0.10)] ring-1 ring-line max-compact:p-4';
+export const card = `flex min-w-0 scroll-mt-24 flex-col gap-4 rounded-lg bg-paper p-5 ${lift} ring-1 ring-line max-compact:p-4`;
 export const eyebrow = 'text-[12.5px] font-medium text-muted';
 
 export function PageHead({ title, desc, tools, aside }: { title: string; desc: string; tools?: ReactNode; aside?: ReactNode }) {
