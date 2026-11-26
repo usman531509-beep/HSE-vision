@@ -6,7 +6,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { cameraApi, type CameraData } from '@/lib/camera/api';
 import { PREVIEW_MESSAGE, uploadProblem } from '@/lib/camera/constants';
 import { buildEvents } from '@/lib/camera/rules';
-import { SIGHTINGS } from '@/lib/camera/sightings';
 import type { Camera, CameraEvent, GearSighting, Point, Review, Video } from '@/lib/camera/types';
 import { LoadPanel, Notice, PreviewBanner } from './status-panel';
 
@@ -77,10 +76,15 @@ export function CameraProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(timer);
   }, [busyIds, putVideo, fail]);
 
+  const sightings = useMemo<GearSighting[]>(
+    () => (data?.videos ?? []).flatMap((v) => (v.gear?.sightings ?? []).map((s) => ({ ...s, videoId: v.id }))),
+    [data?.videos],
+  );
+
   const events = useMemo(() => (data?.videos ?? []).flatMap((v) => {
     const cam = data?.cameras.find((c) => c.id === v.cameraId);
-    return cam && data && v.status === 'completed' ? buildEvents(v, cam, data.zones, SIGHTINGS, data.reviews) : [];
-  }), [data]);
+    return cam && data && v.status === 'completed' ? buildEvents(v, cam, data.zones, sightings, data.reviews) : [];
+  }), [data, sightings]);
 
   const api = useMemo<CameraApi | null>(() => {
     if (!data || !data.cameras.length) return null;
@@ -91,7 +95,7 @@ export function CameraProvider({ children }: { children: ReactNode }) {
       return data.readOnly;
     };
     return {
-      ...data, ...sel, events, sightings: SIGHTINGS, camera,
+      ...data, ...sel, events, sightings, camera,
       video: data.videos.find((v) => v.id === sel.videoId) ?? null,
       selectCamera: (id) => setSel({ camId: id, videoId: firstVideoOf(data.videos, id), eventId: null }),
       selectVideo: (id) => setSel((s) => ({ ...s, videoId: id, eventId: null })),
@@ -164,7 +168,7 @@ export function CameraProvider({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [data, sel, events, patchData, putVideo, fail]);
+  }, [data, sel, events, sightings, patchData, putVideo, fail]);
 
   if (!api) return <LoadPanel error={loadError ?? (data && !data.cameras.length ? 'No cameras are set up yet.' : null)} onRetry={load} />;
   return (

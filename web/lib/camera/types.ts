@@ -44,11 +44,17 @@ export interface Video {
   error?: string;
   /** Present once analysis has run and found people. */
   tracks?: Tracks;
+  /** Safety-gear results; absent for videos analysed before gear checks existed. */
+  gear?: GearCheck;
   credit?: string;
 }
 
-/** What the PPE model reports for one tracked person (demo values until that model is connected). */
+/** The safety-gear model's verdict for one tracked person and one gear item. */
 export interface GearSighting { videoId: string; trackId: number; gear: Gear; seen: boolean; confidence: number }
+
+/** Which gear the analysis could check in a video, and what it decided per person.
+    A person missing from `sightings` for a checked item was not seen clearly enough to say. */
+export interface GearCheck { checked: Gear[]; sightings: Omit<GearSighting, 'videoId'>[] }
 
 export interface CameraEvent {
   id: string;

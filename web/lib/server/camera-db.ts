@@ -4,7 +4,7 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { DEMO } from '../camera/demo';
-import type { Camera, Gear, Point, Processing, Review, Tracks, Video, Zone } from '../camera/types';
+import type { Camera, Gear, GearCheck, Point, Processing, Review, Tracks, Video, Zone } from '../camera/types';
 
 export const DATA_DIR = process.env.CAMERA_DATA_DIR ?? path.join(process.cwd(), 'data');
 export const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS videos (
   id TEXT PRIMARY KEY, camera_id TEXT NOT NULL REFERENCES cameras(id), file_name TEXT NOT NULL,
   src TEXT NOT NULL DEFAULT '', poster TEXT, sprite TEXT, recorded_at TEXT NOT NULL,
   duration_s REAL NOT NULL DEFAULT 0, fps REAL NOT NULL DEFAULT 25, status TEXT NOT NULL,
-  progress INTEGER NOT NULL DEFAULT 0, error TEXT, tracks TEXT, credit TEXT, created_at TEXT NOT NULL
+  progress INTEGER NOT NULL DEFAULT 0, error TEXT, tracks TEXT, credit TEXT, created_at TEXT NOT NULL, gear TEXT
 );
 CREATE TABLE IF NOT EXISTS reviews (
   event_id TEXT PRIMARY KEY, review TEXT NOT NULL, updated_at TEXT NOT NULL
@@ -36,10 +36,10 @@ const WANT_READ_ONLY = process.env.CAMERA_STORAGE ? process.env.CAMERA_STORAGE =
 
 // One connection per server process; dev hot reloads reuse it instead of opening a new one each time.
 // Rename the key whenever the stored shape changes, or a running dev server would hand back the old object.
-const holder = globalThis as unknown as { cameraStoreV2?: { conn: DatabaseSync; readOnly: boolean } };
+const holder = globalThis as unknown as { cameraStoreV3?: { conn: DatabaseSync; readOnly: boolean } };
 
 function open(): { conn: DatabaseSync; readOnly: boolean } {
-  if (holder.cameraStoreV2) return holder.cameraStoreV2;
+  if (holder.cameraStoreV3) return holder.cameraStoreV3;
   let conn: DatabaseSync;
   let readOnly = WANT_READ_ONLY;
   try {
@@ -55,8 +55,19 @@ function open(): { conn: DatabaseSync; readOnly: boolean } {
   }
   const { n } = conn.prepare('SELECT COUNT(*) AS n FROM cameras').get() as { n: number };
   if (n === 0) seed(conn);
-  holder.cameraStoreV2 = { conn, readOnly };
-  return holder.cameraStoreV2;
+  else addGearColumn(conn);
+  holder.cameraStoreV3 = { conn, readOnly };
+  return holder.cameraStoreV3;
+}
+
+/** Upgrades a database made before gear checks: adds the column and fills it in for the sample videos. */
+function addGearColumn(conn: DatabaseSync): void {
+  const cols = conn.prepare('PRAGMA table_info(videos)').all() as Row[];
+  if (cols.some((c) => c.name === 'gear')) return;
+  inTransaction(conn, () => {
+    conn.exec('ALTER TABLE videos ADD COLUMN gear TEXT');
+    for (const v of DEMO.videos) conn.prepare('UPDATE videos SET gear = ? WHERE id = ?').run(JSON.stringify(v.gear), v.id);
+  });
 }
 
 const db = (): DatabaseSync => open().conn;
@@ -70,9 +81,10 @@ function seed(conn: DatabaseSync): void {
     DEMO.cameras.forEach((c, i) => conn.prepare('INSERT INTO cameras VALUES (?,?,?,?,?,?)').run(c.id, c.name, c.area, JSON.stringify(c.requiredGear), c.confirmFrames, i));
     DEMO.zones.forEach((z) => conn.prepare('INSERT INTO zones VALUES (?,?,?,?)').run(z.id, z.cameraId, z.name, JSON.stringify(z.points)));
     DEMO.videos.forEach((v) => conn.prepare(
-      `INSERT INTO videos (id, camera_id, file_name, src, poster, sprite, recorded_at, duration_s, fps, status, progress, tracks, credit, created_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    ).run(v.id, v.cameraId, v.fileName, v.src, v.poster ?? null, v.sprite ?? null, v.recordedAt, v.durationS, v.fps, v.status, 0, JSON.stringify(v.tracks), v.credit ?? null, now));
+      `INSERT INTO videos (id, camera_id, file_name, src, poster, sprite, recorded_at, duration_s, fps, status, progress, tracks, gear, credit, created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ).run(v.id, v.cameraId, v.fileName, v.src, v.poster ?? null, v.sprite ?? null, v.recordedAt, v.durationS, v.fps, v.status, 0,
+      JSON.stringify(v.tracks), JSON.stringify(v.gear), v.credit ?? null, now));
   });
 }
 
@@ -89,7 +101,8 @@ const toVideo = (r: Row): Video => ({
   id: String(r.id), cameraId: String(r.camera_id), fileName: String(r.file_name), src: String(r.src),
   poster: str(r.poster), sprite: str(r.sprite), recordedAt: String(r.recorded_at),
   durationS: Number(r.duration_s), fps: Number(r.fps), status: String(r.status) as Processing, progress: Number(r.progress),
-  error: str(r.error), tracks: r.tracks ? (JSON.parse(String(r.tracks)) as Tracks) : undefined, credit: str(r.credit),
+  error: str(r.error), tracks: r.tracks ? (JSON.parse(String(r.tracks)) as Tracks) : undefined,
+  gear: r.gear ? (JSON.parse(String(r.gear)) as GearCheck) : undefined, credit: str(r.credit),
 });
 
 /* ---------- reads ---------- */
@@ -199,15 +212,15 @@ export function insertVideo(v: Video): Video {
 }
 
 /** Fields the analysis can change on a video. */
-export type VideoPatch = Partial<Pick<Video, 'src' | 'poster' | 'sprite' | 'durationS' | 'fps' | 'status' | 'progress' | 'error' | 'tracks'>>;
+export type VideoPatch = Partial<Pick<Video, 'src' | 'poster' | 'sprite' | 'durationS' | 'fps' | 'status' | 'progress' | 'error' | 'tracks' | 'gear'>>;
 const COLUMN: Record<keyof VideoPatch, string> = {
-  src: 'src', poster: 'poster', sprite: 'sprite', durationS: 'duration_s', fps: 'fps', status: 'status', progress: 'progress', error: 'error', tracks: 'tracks',
+  src: 'src', poster: 'poster', sprite: 'sprite', durationS: 'duration_s', fps: 'fps', status: 'status', progress: 'progress', error: 'error', tracks: 'tracks', gear: 'gear',
 };
 
 export function updateVideo(id: string, patch: VideoPatch): Video | undefined {
   const keys = Object.keys(patch) as (keyof VideoPatch)[];
   if (keys.length) {
-    const values = keys.map((k) => (k === 'tracks' ? JSON.stringify(patch.tracks) : (patch[k] ?? null))) as (string | number | null)[];
+    const values = keys.map((k) => (k === 'tracks' || k === 'gear' ? JSON.stringify(patch[k]) : (patch[k] ?? null))) as (string | number | null)[];
     db().prepare(`UPDATE videos SET ${keys.map((k) => `${COLUMN[k]} = ?`).join(', ')} WHERE id = ?`).run(...values, id);
   }
   return getVideo(id);

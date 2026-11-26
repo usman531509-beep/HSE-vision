@@ -1,15 +1,35 @@
 # HSE vision service
 
-Runs person detection and tracking on videos uploaded in **Camera analysis**. The web app saves the upload,
+Runs person and safety-gear detection and tracking on videos uploaded in **Camera analysis**. The web app saves the upload,
 sends it here, and polls the job until it finishes. This service does pipeline steps 1–4:
 
 1. **Video**: converts the clip to 1280×720, 25 fps, H.264, and makes a poster and an evidence-thumbnail sheet
 2. **Frames**: counts the frames to check
-3. **Detect**: finds people in each frame (YOLO)
+3. **Detect**: finds people in each frame (YOLO), and helmets, vests, gloves and masks 2.5 times a second (PPE model)
 4. **Track**: gives each person a temporary number across frames (ByteTrack)
 
 The web app then runs the rules (restricted areas, safety gear) and lists the events for review.
-Safety-gear detection is not part of this service yet; it needs a PPE model (see `HSE_Camera_Module_Docs/02_MODELS_AND_DATASETS.md`).
+
+## Safety-gear model
+
+[safetyvision-yolov8 v2](https://huggingface.co/ayushgupta7777/safetyvision-yolov8) (YOLOv8s, 13 classes, test mAP@0.5 0.75).
+It downloads on the first job to `models/ppe.onnx` (45 MB) from a pinned revision and is checked against a fixed SHA-256.
+The ONNX file is used, not `best.pt`: a .pt file is a Python pickle and can run code when loaded.
+
+How a verdict is made: each gear box is given to the tracked person it sits on, and each person needs at least 3 finds
+for an item before anything is said. Worn and not-worn finds are weighed by confidence. With too few finds there is no
+verdict, so the web app raises no event rather than guessing. If the model cannot be downloaded, videos are still
+analysed for people and restricted areas, and the web app says gear was not checked.
+
+Tested on the three sample clips:
+- **Masks**: found reliably.
+- **Wool caps and hairnets**: often called helmets (false "helmet worn").
+- **Thin white work gloves**: not found.
+- **Hairnets**: no class at all.
+- **No-vest and mask**: the model card lists these as its weakest classes.
+
+Every gear result is a "possible missing gear" event for a person to review, but before relying on it, test on real
+footage from the site and fine-tune on labelled site footage if needed (see `HSE_Camera_Module_Docs/02_MODELS_AND_DATASETS.md`).
 
 ## Requirements
 
@@ -28,7 +48,7 @@ pip install -r requirements.txt
 uvicorn app:app --host 127.0.0.1 --port 8001
 ```
 
-The model weights (`yolo11s.pt`, about 20 MB) download on the first job. Check it is up with
+The model weights (`yolo11s.pt`, about 20 MB, and the gear model, 45 MB) download on the first job. Check it is up with
 `http://127.0.0.1:8001/health`.
 
 ## Settings
@@ -36,6 +56,7 @@ The model weights (`yolo11s.pt`, about 20 MB) download on the first job. Check i
 | Variable | Default | Where |
 |---|---|---|
 | `VISION_MODEL` | `yolo11s.pt` | this service. `yolo11m.pt` is more accurate and about 2× slower on CPU |
+| `VISION_PPE_MODEL` | `models/ppe.onnx` | this service: where the gear model is kept |
 | `VISION_SERVICE_URL` | `http://127.0.0.1:8001` | the web app, if the service runs elsewhere |
 | `CAMERA_DATA_DIR` | `web/data` | the web app: database and uploads. Both processes must see the same paths |
 
@@ -47,4 +68,4 @@ The model weights (`yolo11s.pt`, about 20 MB) download on the first job. Check i
 
 ## Licence
 
-Ultralytics YOLO is AGPL-3.0. Check the licence terms with the company before using it in a commercial product.
+Ultralytics YOLO and the safetyvision gear model are both AGPL-3.0. Check the licence terms with the company before using it in a commercial product.

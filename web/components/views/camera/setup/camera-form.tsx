@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { CONFIRM_OPTIONS } from '@/lib/camera/constants';
-import { GEAR_LABEL, GEARS } from '@/lib/camera/labels';
+import { GEAR_LABEL, GEARS, MODEL_GEAR } from '@/lib/camera/labels';
 import type { Camera, Gear } from '@/lib/camera/types';
 import { useCamera } from '../../../camera/state';
 import { useConfirm } from '../../../confirm';
@@ -52,6 +52,7 @@ export function CameraForm({ camera }: { camera: Camera }) {
                     {on ? <Icon name="check" className="size-3" stroke={3} /> : null}
                   </span>
                   {GEAR_LABEL[g]}
+                  {MODEL_GEAR.includes(g) ? null : <span className={cx(meta, 'ml-auto')}>not checked by AI yet</span>}
                 </button>
               );
             })}

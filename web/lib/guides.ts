@@ -93,13 +93,13 @@ export const GUIDES: Guide[] = [
         'Select Delete camera at the bottom of Camera details and confirm.',
       ] },
       { title: 'Choose the safety gear to check', steps: ['Open Camera setup and pick the camera.', 'Tick the gear everyone must wear.', 'Select Save camera.'] },
-      { title: 'Analyse a new video', steps: ['Select Upload video and choose an MP4, MOV or WebM file up to 2 minutes long.', 'How the analysis runs shows each step while it processes.', 'When it finishes, people are boxed and restricted-area entries are listed.'] },
+      { title: 'Analyse a new video', steps: ['Select Upload video and choose an MP4, MOV or WebM file up to 2 minutes long.', 'How the analysis runs shows each step while it processes.', 'When it finishes, people are boxed and restricted-area entries and possible missing gear are listed.'] },
     ],
     tips: [
       'person-1, person-2 and so on are tracking numbers for one video only. They are not names.',
       'A person counts as inside an area when their feet are inside it.',
       'Missing gear is shown as possible until a person confirms it. Gear can be hidden by the camera angle.',
-      'People are detected by an AI model. Safety-gear checks on uploads start once the PPE model is connected.',
+      'People and helmets, vests, gloves and masks are found by AI models. Hairnets cannot be checked by the model yet.',
     ],
   },
   {
