@@ -1,11 +1,12 @@
 'use client';
 
 /* Camera module state, shared by Camera analysis and Camera setup (mounted by app/camera/layout.tsx).
-   Loads from the camera API, saves every change through it, and polls uploads until analysis finishes. */
+   Loads from the camera API, saves every change through it, and polls uploads until analysis finishes.
+   Events come from the server, which runs the rules; this only adds the review decisions. */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { cameraApi, type CameraData } from '@/lib/camera/api';
 import { PREVIEW_MESSAGE, uploadProblem } from '@/lib/camera/constants';
-import { buildEvents } from '@/lib/camera/rules';
+import { sightingsOf } from '@/lib/camera/rules';
 import type { Camera, CameraEvent, GearSighting, Point, Review, Video } from '@/lib/camera/types';
 import { LoadPanel, Notice, PreviewBanner } from './status-panel';
 
@@ -14,7 +15,7 @@ const POLL_MS = 1500;
 interface Selection { camId: string; videoId: string | null; eventId: string | null }
 
 interface CameraApi extends CameraData, Selection {
-  /** Events of every analysed video, with the current rules and reviews applied. */
+  /** Events of every analysed video, as stored by the server, with review decisions applied. */
   events: CameraEvent[];
   sightings: GearSighting[];
   camera: Camera;
@@ -62,6 +63,12 @@ export function CameraProvider({ children }: { children: ReactNode }) {
   const putVideo = useCallback((v: Video, replaceId = v.id) => patchData((d) => ({ videos: d.videos.map((x) => (x.id === replaceId ? v : x)) })), [patchData]);
   const fail = useCallback((what: string) => (err: Error) => setNotice(`${what}: ${err.message}`), []);
 
+  /** Re-reads the events after a change that made the server re-run the rules. */
+  const reloadEvents = useCallback(
+    () => cameraApi.events().then((ev) => patchData(() => ({ events: ev }))).catch(fail('Events not updated')),
+    [patchData, fail],
+  );
+
   // Poll every video the vision service is still working on.
   const busyIds = (data?.videos ?? []).filter(isBusy).map((v) => v.id).join(',');
   const inFlight = useRef(false);
@@ -70,21 +77,20 @@ export function CameraProvider({ children }: { children: ReactNode }) {
     const timer = setInterval(() => {
       if (inFlight.current) return;
       inFlight.current = true;
-      Promise.all(busyIds.split(',').map((id) => cameraApi.status(id).then((v) => putVideo(v)).catch(fail('Could not check analysis'))))
+      Promise.all(busyIds.split(',').map((id) => cameraApi.status(id)
+        .then((v) => { putVideo(v); if (v.status === 'completed') return reloadEvents(); })
+        .catch(fail('Could not check analysis'))))
         .finally(() => { inFlight.current = false; });
     }, POLL_MS);
     return () => clearInterval(timer);
-  }, [busyIds, putVideo, fail]);
+  }, [busyIds, putVideo, reloadEvents, fail]);
 
-  const sightings = useMemo<GearSighting[]>(
-    () => (data?.videos ?? []).flatMap((v) => (v.gear?.sightings ?? []).map((s) => ({ ...s, videoId: v.id }))),
-    [data?.videos],
+  const sightings = useMemo<GearSighting[]>(() => (data?.videos ?? []).flatMap(sightingsOf), [data?.videos]);
+
+  const events = useMemo<CameraEvent[]>(
+    () => (data?.events ?? []).map((e) => ({ ...e, review: data?.reviews[e.id] ?? 'needs_review' })),
+    [data?.events, data?.reviews],
   );
-
-  const events = useMemo(() => (data?.videos ?? []).flatMap((v) => {
-    const cam = data?.cameras.find((c) => c.id === v.cameraId);
-    return cam && data && v.status === 'completed' ? buildEvents(v, cam, data.zones, sightings, data.reviews) : [];
-  }), [data, sightings]);
 
   const api = useMemo<CameraApi | null>(() => {
     if (!data || !data.cameras.length) return null;
@@ -114,13 +120,13 @@ export function CameraProvider({ children }: { children: ReactNode }) {
         cameraApi.review(eventId, r).catch((err: Error) => { set(before); fail('Review not saved')(err); });
       },
       saveCamera: async (c) => !previewOnly() && cameraApi.saveCamera(c)
-        .then((saved) => { patchData((d) => ({ cameras: d.cameras.map((x) => (x.id === saved.id ? saved : x)) })); return true; })
+        .then((saved) => { patchData((d) => ({ cameras: d.cameras.map((x) => (x.id === saved.id ? saved : x)) })); void reloadEvents(); return true; })
         .catch((err: Error) => { fail('Camera not saved')(err); return false; }),
       addCamera: async () => { if (!previewOnly()) await cameraApi.addCamera()
         .then((cam) => { patchData((d) => ({ cameras: [...d.cameras, cam] })); setSel({ camId: cam.id, videoId: null, eventId: null }); })
         .catch(fail('Camera not added')); },
       saveZone: async (cameraId, name, points) => !previewOnly() && cameraApi.addZone(cameraId, name, points)
-        .then((z) => { patchData((d) => ({ zones: [...d.zones, z] })); return true; })
+        .then((z) => { patchData((d) => ({ zones: [...d.zones, z] })); void reloadEvents(); return true; })
         .catch((err: Error) => { fail('Area not saved')(err); return false; }),
       deleteCamera: async (id) => !previewOnly() && cameraApi.deleteCamera(id)
         .then(() => {
@@ -131,18 +137,23 @@ export function CameraProvider({ children }: { children: ReactNode }) {
         })
         .catch((err: Error) => { fail('Camera not deleted')(err); return false; }),
       renameZone: async (id, name) => !previewOnly() && cameraApi.renameZone(id, name)
-        .then((z) => { patchData((d) => ({ zones: d.zones.map((x) => (x.id === z.id ? z : x)) })); return true; })
+        .then((z) => { patchData((d) => ({ zones: d.zones.map((x) => (x.id === z.id ? z : x)) })); void reloadEvents(); return true; })
         .catch((err: Error) => { fail('Area not renamed')(err); return false; }),
       deleteZone: async (id) => !previewOnly() && cameraApi.deleteZone(id)
         .then(() => {
           patchData((d) => ({ zones: d.zones.filter((z) => z.id !== id), reviews: dropReviews(d.reviews, (e) => e.includes(`:zone:${id}:`)) }));
+          void reloadEvents();
           return true;
         })
         .catch((err: Error) => { fail('Area not deleted')(err); return false; }),
       deleteVideo: async (id) => !previewOnly() && cameraApi.deleteVideo(id)
         .then(() => {
           const rest = data.videos.filter((v) => v.id !== id);
-          patchData((d) => ({ videos: d.videos.filter((v) => v.id !== id), reviews: dropReviews(d.reviews, (e) => e.startsWith(`${id}:`)) }));
+          patchData((d) => ({
+            videos: d.videos.filter((v) => v.id !== id),
+            events: d.events.filter((e) => e.videoId !== id),
+            reviews: dropReviews(d.reviews, (e) => e.startsWith(`${id}:`)),
+          }));
           setSel((s) => (s.videoId === id ? { ...s, videoId: firstVideoOf(rest, s.camId), eventId: null } : s));
           return true;
         })
@@ -168,7 +179,7 @@ export function CameraProvider({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [data, sel, events, sightings, patchData, putVideo, fail]);
+  }, [data, sel, events, sightings, patchData, putVideo, reloadEvents, fail]);
 
   if (!api) return <LoadPanel error={loadError ?? (data && !data.cameras.length ? 'No cameras are set up yet.' : null)} onRetry={load} />;
   return (

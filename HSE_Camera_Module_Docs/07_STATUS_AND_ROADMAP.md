@@ -12,6 +12,7 @@ Last updated: 2026-11-26.
 | Storage | SQLite through `/api/*` routes; read-only preview on Vercel | `web/lib/server` |
 | Upload and analysis | Upload → convert → detect people → track (YOLO11 + ByteTrack) → rules → events | `vision-service/` |
 | Safety gear | Helmet, vest, gloves and mask checked on uploads (safetyvision-yolov8 v2, ONNX). Hairnet cannot be checked | `vision-service/ppe.py` |
+| Server-side rules | Events are created and stored on the server when analysis ends (the vision service calls the app back) and rebuilt when a camera, area or gear rule changes. Review decisions are kept across rebuilds | `web/lib/server/camera-db.ts`, `/api/events` |
 | Spill (explored) | Zero-shot test with YOLO-World: no false alarms, but missed clear water and only weakly found a wet floor. Not usable | see Spill detection below |
 
 ## Known limits of the gear model (tested on the sample clips)
@@ -54,8 +55,8 @@ customers would require publishing its full source code. Options:
 - Local prototype first: laptop webcam, a phone as an IP camera ("IP Webcam" app), or a sample clip replayed as RTSP
   with MediaMTX + ffmpeg. Estimated 2–3 days.
 
-### 5. Rules and events on the server
-Rules run in the browser today. Live cameras and alerts need them on the server, so events exist without the page open.
+### 5. Alerts
+Events now exist on the server, so an alert (email, SMS, WhatsApp) can be sent when one is created. Not started.
 
 ### 6. Going live (hosting)
 - Shared database (Postgres or Supabase) instead of the local SQLite file.

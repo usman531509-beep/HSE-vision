@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 import queue
 import threading
+import urllib.request
 from pathlib import Path
 from typing import Literal
 
@@ -33,6 +34,8 @@ class JobIn(BaseModel):
     out_dir: str
     sprite: SpriteIn
     max_seconds: float = Field(gt=0)
+    # The web app's "job ended" address. The call carries no data; the app reads the result from /jobs itself.
+    callback_url: str | None = Field(default=None, pattern=r"^https?://")
 
 
 class JobOut(BaseModel):
@@ -71,7 +74,19 @@ def _worker() -> None:
             log.exception("job %s crashed", job.video_id)
             _update(job.video_id, state="failed", error="Analysis failed on the server. Check the vision service log.")
         finally:
+            _notify(job)
             work.task_done()
+
+
+def _notify(job: JobIn) -> None:
+    """Tells the web app the job ended, so it creates the events without waiting for someone to open the page.
+    A failed call is only logged: the page still picks the result up when it next checks the status."""
+    if not job.callback_url:
+        return
+    try:
+        urllib.request.urlopen(urllib.request.Request(job.callback_url, data=b"", method="POST"), timeout=10).close()
+    except Exception as err:
+        log.warning("job %s: could not notify the web app at %s: %s", job.video_id, job.callback_url, err)
 
 
 threading.Thread(target=_worker, daemon=True, name="vision-worker").start()

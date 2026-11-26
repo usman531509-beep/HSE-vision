@@ -6,6 +6,8 @@ import type { GearCheck, Tracks, Video } from '../camera/types';
 import { getVideo, updateVideo, UPLOAD_DIR } from './camera-db';
 
 const SERVICE_URL = process.env.VISION_SERVICE_URL ?? 'http://127.0.0.1:8001';
+/** Where the vision service can reach this app; defaults to the address the upload came in on. */
+const APP_URL = process.env.CAMERA_APP_URL;
 const SERVICE_DOWN = 'Video analysis is not available right now. Ask your administrator to start the analysis service, then upload the video again.';
 const JOB_LOST = 'Analysis stopped because the analysis service restarted. Upload the video again.';
 
@@ -21,13 +23,15 @@ export const uploadDir = (videoId: string) => path.join(UPLOAD_DIR, videoId);
 /** URL the browser uses for one of an upload's files. */
 export const assetUrl = (videoId: string, kind: 'video' | 'poster' | 'sprite') => `/api/videos/${encodeURIComponent(videoId)}/file?kind=${kind}`;
 
-/** Hands a stored upload to the vision service. The video is marked failed when the service cannot be reached. */
-export async function startAnalysis(video: Video, sourcePath: string): Promise<Video | undefined> {
+/** Hands a stored upload to the vision service. The video is marked failed when the service cannot be reached.
+    The service calls back when the job ends, so events are created even if nobody has the page open. */
+export async function startAnalysis(video: Video, sourcePath: string, origin: string): Promise<Video | undefined> {
+  const callback = `${APP_URL ?? origin}/api/videos/${encodeURIComponent(video.id)}/analysed`;
   try {
     const res = await fetch(`${SERVICE_URL}/jobs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ video_id: video.id, source: sourcePath, out_dir: uploadDir(video.id), sprite: SPRITE, max_seconds: UPLOAD.maxSeconds }),
+      body: JSON.stringify({ video_id: video.id, source: sourcePath, out_dir: uploadDir(video.id), sprite: SPRITE, max_seconds: UPLOAD.maxSeconds, callback_url: callback }),
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) throw new Error(`vision service answered ${res.status}: ${await res.text()}`);
