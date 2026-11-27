@@ -5,7 +5,7 @@ import { useState, type ReactNode } from 'react';
 import { BOX_COLOR } from '@/lib/camera/labels';
 import { cams, floorStats, machines, machineState, plan, sensors, type Cam, type Sev } from '@/lib/data';
 import { Spark, TINT } from '../figures';
-import { Card, Chip, cx, Dot, eyebrow, Foot, Icon, Legend, meta, Num, PageHead, Panel, SEV, Sq, Table, tile } from '../ui';
+import { Card, Chip, cx, Dot, eyebrow, Foot, Icon, Legend, meta, Num, PageHead, Panel, SEV, segBtn, segWrap, Sq, Table, tile } from '../ui';
 import { useCamera } from '../camera/state';
 import { CameraBody, CameraHeaderStats, CameraHeaderTools } from './camera';
 import { LiveFeedsCard } from './camera/live-feeds';
@@ -144,16 +144,10 @@ type Tab = (typeof TABS)[number][0];
 
 function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
   return (
-    <div className="inline-flex gap-0.5 rounded-[8px] bg-paper p-1 ring-1 ring-line" role="tablist" aria-label="Cameras view">
+    // self-start: inside the stretching column the bar would otherwise grow as wide as the row below it.
+    <div className={cx(segWrap, 'self-start')} role="tablist" aria-label="Cameras view">
       {TABS.map(([key, label]) => (
-        <button
-          key={key}
-          type="button"
-          role="tab"
-          aria-selected={tab === key}
-          onClick={() => setTab(key)}
-          className="h-9 whitespace-nowrap rounded-[7px] px-4 text-[13px] font-medium text-ink-2 hover:bg-sunk aria-selected:bg-ink aria-selected:text-paper"
-        >
+        <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={segBtn}>
           {label}
         </button>
       ))}
@@ -170,13 +164,16 @@ export function CamerasView() {
   const tools: ReactNode = (
     <div className="flex flex-col gap-3">
       <TabBar tab={tab} setTab={setTab} />
-      {live ? (
-        <div className="flex flex-wrap gap-[18px] text-[13px] text-muted">
-          {floorStats.map((f) => <span key={f[1]}><b className="mr-1 font-semibold text-ink tabular-nums">{f[0]}</b>{f[1]}</span>)}
-        </div>
-      ) : (
-        <CameraHeaderTools />
-      )}
+      {/* Same height on both tabs (the camera picker is the taller one), so the content below starts at the same place. */}
+      <div className="flex min-h-11 items-center">
+        {live ? (
+          <div className="flex flex-wrap gap-[18px] text-[13px] text-muted">
+            {floorStats.map((f) => <span key={f[1]}><b className="mr-1 font-semibold text-ink tabular-nums">{f[0]}</b>{f[1]}</span>)}
+          </div>
+        ) : (
+          <CameraHeaderTools />
+        )}
+      </div>
     </div>
   );
 
@@ -186,11 +183,13 @@ export function CamerasView() {
         title="Cameras"
         desc={live
           ? 'A live wall of every camera, with detection boxes for what each one sees right now.'
-          : 'Analyse recorded site video for people, safety gear and restricted-area entry, and review what it finds.'}
+          : 'Check recorded site video for people, safety gear and restricted areas.'}
         tools={tools}
         aside={live ? undefined : <CameraHeaderStats />}
       />
-      {live ? <LiveTab onOpen={openRecorded} /> : <CameraBody />}
+      <div key={tab} className="motion-safe:animate-tab-in">
+        {live ? <LiveTab onOpen={openRecorded} /> : <CameraBody />}
+      </div>
     </>
   );
 }

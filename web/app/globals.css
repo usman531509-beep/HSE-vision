@@ -55,6 +55,15 @@
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* A tab's content easing in, so switching tabs reads as a change of content rather than the page jumping. */
+  --animate-tab-in: tab-in 220ms var(--ease-out) both;
+  @keyframes tab-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
   /* A word appearing where Shade's flying pixels land: a soft edge wipes it in left to right, behind the dots.
      Delay and duration are set inline from the flight timing (agent/converge.ts). */
   --animate-land: land 300ms linear both;
